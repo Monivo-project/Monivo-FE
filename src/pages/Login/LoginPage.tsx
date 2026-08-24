@@ -2,7 +2,7 @@ export default function LoginPage() {
 
     const handleKakaoLogin = () => {
         window.location.href =
-            "http://43.202.37.126:8080/oauth2/authorization/kakao";
+            "https://api.anna-lee.xyz/oauth2/authorization/kakao";
     };
 
     return (
