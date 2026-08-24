@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import LoginPage from "./pages/Login/LoginPage";
 
@@ -9,15 +9,17 @@ import AbnormalSpendingPage from "./pages/AbnormalSpending/AbnormalSpendingPage"
 import UncategorizedPage from "./pages/Uncategorized/UncategorizedPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 
+import RootRedirect from "./components/common/RootRedirect";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* 루트 → 로그인 */}
+        {/* 루트 */}
         <Route
           path="/"
-          element={<Navigate to="/login" replace />}
+          element={<RootRedirect />}
         />
 
         {/* 로그인 */}
