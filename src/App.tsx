@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/Login/LoginPage";
 
@@ -14,6 +14,12 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* 루트 → 로그인 */}
+        <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
+
         {/* 로그인 */}
         <Route
           path="/login"
@@ -22,7 +28,7 @@ function App() {
 
         {/* 홈 */}
         <Route
-          path="/"
+          path="/home"
           element={<HomePage />}
         />
 
