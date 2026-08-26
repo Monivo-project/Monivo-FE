@@ -1,14 +1,18 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 
 import MainLayout from "../../components/layout/MainLayout";
+
 import AbnormalSpendingCard from "./components/AbnormalSpendingCard";
 import AbnormalWarningBanner from "./components/AbnormalWarningBanner";
 
 import api from "../../api/api";
 
 /* ============================================================
-   이상 지출 Item
+   이상 지출 데이터
 ============================================================ */
 
 export type AbnormalSpendingItem = {
@@ -23,7 +27,7 @@ export type AbnormalSpendingItem = {
 };
 
 /* ============================================================
-   Backend Response
+   API Response
 ============================================================ */
 
 type AbnormalApiResponse = {
@@ -38,13 +42,16 @@ type AbnormalApiResponse = {
 ============================================================ */
 
 export default function AbnormalSpendingPage() {
-  const [abnormalSpending, setAbnormalSpending] = useState<
-    AbnormalSpendingItem[]
-  >([]);
+  const [
+    abnormalSpending,
+    setAbnormalSpending,
+  ] = useState<AbnormalSpendingItem[]>([]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
   /* ============================================================
      이상 지출 조회
@@ -53,84 +60,72 @@ export default function AbnormalSpendingPage() {
   ============================================================ */
 
   useEffect(() => {
-    const fetchAbnormalSpendings = async () => {
-      try {
-        setLoading(true);
-        setError("");
+    const fetchAbnormalSpendings =
+      async () => {
+        try {
+          setLoading(true);
+          setError("");
 
-        const response = await api.get<AbnormalApiResponse>(
-          "/api/abnormal"
-        );
+          const response =
+            await api.get<AbnormalApiResponse>(
+              "/api/abnormal"
+            );
 
-        console.log(
-          "전체 API 응답:",
-          response
-        );
+          console.log(
+            "이상 지출 API 응답:",
+            response.data
+          );
 
-        console.log(
-          "API 응답 데이터:",
-          response.data
-        );
+          /* ======================================================
+             Axios Response이므로
 
-        /*
-         * api.ts의 interceptor에서
-         *
-         * return response.data;
-         *
-         * 처리를 하고 있을 수도 있기 때문에
-         * 두 가지 형태를 모두 대응
-         */
+             response.data.isSuccess
+             response.data.result
+             response.data.message
 
-        const responseData =
-          response.data ?? response;
+             사용
+          ====================================================== */
 
-        console.log(
-          "최종 처리할 데이터:",
-          responseData
-        );
+          if (response.data.isSuccess) {
 
-        /* ========================================================
-           성공 여부 확인
-        ======================================================== */
+            console.log(
+              "이상 지출 목록:",
+              response.data.result
+            );
 
-        if (!responseData.isSuccess) {
+            setAbnormalSpending(
+              response.data.result ?? []
+            );
+
+          } else {
+
+            setError(
+              response.data.message ||
+              "이상 지출 정보를 불러오지 못했습니다."
+            );
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "이상 지출 조회 실패:",
+            error
+          );
+
           setError(
-            responseData.message ||
             "이상 지출 정보를 불러오지 못했습니다."
           );
 
-          return;
+        } finally {
+
+          setLoading(false);
+
         }
-
-        /* ========================================================
-           result 확인
-        ======================================================== */
-
-        const result =
-          responseData.result ?? [];
-
-        console.log(
-          "이상 지출 목록:",
-          result
-        );
-
-        setAbnormalSpending(result);
-
-      } catch (error) {
-        console.error(
-          "이상 지출 조회 실패:",
-          error
-        );
-
-        setError(
-          "이상 지출 정보를 불러오지 못했습니다."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
     fetchAbnormalSpendings();
+
   }, []);
 
   /* ============================================================
@@ -139,10 +134,6 @@ export default function AbnormalSpendingPage() {
 
   const abnormalCount =
     abnormalSpending.length;
-
-  /* ============================================================
-     Render
-  ============================================================ */
 
   return (
     <MainLayout activeMenu="이상 지출">
@@ -154,13 +145,29 @@ export default function AbnormalSpendingPage() {
         ====================================================== */}
 
         <header className="mb-7">
-          <h1 className="text-[28px] font-bold tracking-tight text-[#172033]">
+
+          <h1
+            className="
+              text-[28px]
+              font-bold
+              tracking-tight
+              text-[#172033]
+            "
+          >
             이상 지출
           </h1>
 
-          <p className="mt-1 text-[15px] text-[#9AA5B5]">
-            평소와 다른 패턴의 지출이 감지되었습니다.
+          <p
+            className="
+              mt-1
+              text-[15px]
+              text-[#9AA5B5]
+            "
+          >
+            평소와 다른 패턴의 지출이
+            감지되었습니다.
           </p>
+
         </header>
 
         {/* ======================================================
@@ -170,7 +177,7 @@ export default function AbnormalSpendingPage() {
         <div className="mt-6 space-y-6">
 
           {/* ====================================================
-              Warning
+              Warning Banner
           ==================================================== */}
 
           {!loading && !error && (
@@ -184,9 +191,27 @@ export default function AbnormalSpendingPage() {
           ==================================================== */}
 
           {loading && (
-            <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-gray-100 bg-white">
+            <div
+              className="
+                flex
+                min-h-[300px]
+                items-center
+                justify-center
+                rounded-2xl
+                border
+                border-gray-100
+                bg-white
+              "
+            >
 
-              <div className="flex items-center gap-2 text-[#8B95A7]">
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  text-[#8B95A7]
+                "
+              >
 
                 <Loader2
                   size={20}
@@ -207,11 +232,31 @@ export default function AbnormalSpendingPage() {
           ==================================================== */}
 
           {!loading && error && (
-            <div className="flex min-h-[250px] items-center justify-center rounded-2xl border border-red-100 bg-white">
+            <div
+              className="
+                flex
+                min-h-[250px]
+                items-center
+                justify-center
+                rounded-2xl
+                border
+                border-red-100
+                bg-white
+              "
+            >
 
-              <div className="flex items-center gap-2 text-red-500">
+              <div
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  text-red-500
+                "
+              >
 
-                <AlertCircle size={20} />
+                <AlertCircle
+                  size={20}
+                />
 
                 <span>
                   {error}
@@ -230,23 +275,56 @@ export default function AbnormalSpendingPage() {
             !error &&
             abnormalSpending.length === 0 && (
 
-              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white">
+              <div
+                className="
+                  flex
+                  min-h-[300px]
+                  flex-col
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  border
+                  border-gray-100
+                  bg-white
+                "
+              >
 
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
-
+                <div
+                  className="
+                    mb-4
+                    flex
+                    h-14
+                    w-14
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-green-50
+                  "
+                >
                   <span className="text-2xl">
                     ✓
                   </span>
-
                 </div>
 
-                <h2 className="text-[18px] font-bold text-[#172033]">
+                <h2
+                  className="
+                    text-[18px]
+                    font-bold
+                    text-[#172033]
+                  "
+                >
                   이상 지출이 없습니다.
                 </h2>
 
-                <p className="mt-2 text-[14px] text-[#9AA5B5]">
-                  현재까지 평소와 다른 소비 패턴이
-                  발견되지 않았습니다.
+                <p
+                  className="
+                    mt-2
+                    text-[14px]
+                    text-[#9AA5B5]
+                  "
+                >
+                  현재까지 평소와 다른
+                  소비 패턴이 발견되지 않았습니다.
                 </p>
 
               </div>
@@ -262,14 +340,16 @@ export default function AbnormalSpendingPage() {
 
               <div className="space-y-5">
 
-                {abnormalSpending.map((item) => (
-
-                  <AbnormalSpendingCard
-                    key={item.transactionId}
-                    item={item}
-                  />
-
-                ))}
+                {abnormalSpending.map(
+                  (item) => (
+                    <AbnormalSpendingCard
+                      key={
+                        item.transactionId
+                      }
+                      item={item}
+                    />
+                  )
+                )}
 
               </div>
             )}
