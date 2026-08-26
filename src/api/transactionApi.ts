@@ -13,9 +13,13 @@ export const uploadTransactions = async (
   formData.append("file", file);
 
   try {
-    await api.post("/api/transactions/upload", formData, {
-      withCredentials: true,
-    });
+    await api.post(
+      "/api/transactions/upload",
+      formData,
+      {
+        withCredentials: true,
+      }
+    );
   } catch (error: any) {
     console.error("거래 내역 업로드 실패");
     console.error("Status:", error.response?.status);
@@ -28,7 +32,9 @@ export const uploadTransactions = async (
     }
 
     throw new Error(
-      `거래 내역 업로드 실패 (${error.response?.status ?? "알 수 없음"})`
+      `거래 내역 업로드 실패 (${
+        error.response?.status ?? "알 수 없음"
+      })`
     );
   }
 };
