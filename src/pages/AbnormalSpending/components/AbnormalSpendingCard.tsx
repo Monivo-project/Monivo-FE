@@ -28,10 +28,7 @@ type AbnormalSpendingCardProps = {
    Category ID
 ============================================================ */
 
-const CATEGORY_IDS: Record<
-  string,
-  number
-> = {
+const CATEGORY_IDS: Record<string, number> = {
   식비: 1,
   "쇼핑/생활": 2,
   교통: 3,
@@ -53,10 +50,9 @@ const CATEGORY_IDS: Record<
 export default function AbnormalSpendingCard({
   item,
 }: AbnormalSpendingCardProps) {
-
-  /* ============================================================
+  /* ==========================================================
      Category Modal
-  ============================================================ */
+  ========================================================== */
 
   const [
     isCategoryModalOpen,
@@ -76,78 +72,75 @@ export default function AbnormalSpendingCard({
   const [isSaving, setIsSaving] =
     useState(false);
 
-  /* ============================================================
+  /* ==========================================================
      Confirm
-  ============================================================ */
+  ========================================================== */
 
   const [
     isConfirming,
     setIsConfirming,
   ] = useState(false);
 
-  /* ============================================================
+  /* ==========================================================
      Category Save
-  ============================================================ */
+  ========================================================== */
 
-  const handleCategorySave =
-    async () => {
+  const handleCategorySave = async () => {
+    const categoryId =
+      CATEGORY_IDS[selectedCategory];
 
-      const categoryId =
-        CATEGORY_IDS[
+    if (!categoryId) {
+      alert(
+        "올바른 카테고리를 선택해주세요."
+      );
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      await api.patch(
+        `/api/${item.transactionId}/category/${categoryId}`
+      );
+
+      /* ==============================================
+         화면의 카테고리 즉시 변경
+      ============================================== */
+
+      setCurrentCategory(
         selectedCategory
-        ];
+      );
 
-      if (!categoryId) {
-        alert(
-          "올바른 카테고리를 선택해주세요."
-        );
-        return;
-      }
+      setIsCategoryModalOpen(false);
 
-      try {
-        setIsSaving(true);
+    } catch (error) {
+      console.error(
+        "카테고리 수정 실패:",
+        error
+      );
 
-        await api.patch(
-          `/api/consumption/${item.transactionId}/category/${categoryId}`
-        );
+      alert(
+        "카테고리 수정에 실패했습니다."
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-        setCurrentCategory(
-          selectedCategory
-        );
-
-        setIsCategoryModalOpen(
-          false
-        );
-
-      } catch (error) {
-        console.error(
-          "카테고리 수정 실패:",
-          error
-        );
-
-        alert(
-          "카테고리 수정에 실패했습니다."
-        );
-
-      } finally {
-        setIsSaving(false);
-      }
-    };
-
-  /* ============================================================
+  /* ==========================================================
      Confirm Abnormal
-
-     PATCH /api/consumption/{transactionId}
-  ============================================================ */
+     
+     PATCH
+     /api/consumption/{transactionId}
+  ========================================================== */
 
   const handleConfirmAbnormal =
     async () => {
-
       try {
         setIsConfirming(true);
 
         await api.patch(
-          `/api/consumption/${item.transactionId}`
+          `/api/abnormal/${item.transactionId}`
         );
 
         alert(
@@ -163,31 +156,27 @@ export default function AbnormalSpendingCard({
         alert(
           "이상 지출 확인 처리에 실패했습니다."
         );
-
       } finally {
         setIsConfirming(false);
       }
     };
 
-  /* ============================================================
+  /* ==========================================================
      Open Category Modal
-  ============================================================ */
+  ========================================================== */
 
   const handleOpenCategoryModal =
     () => {
-
       setSelectedCategory(
         currentCategory
       );
 
-      setIsCategoryModalOpen(
-        true
-      );
+      setIsCategoryModalOpen(true);
     };
 
-  /* ============================================================
-     CategoryEditModal용 데이터
-  ============================================================ */
+  /* ==========================================================
+     CategoryEditModal Data
+  ========================================================== */
 
   const transactionForModal = {
     transactionId:
@@ -213,9 +202,12 @@ export default function AbnormalSpendingCard({
     classificationType:
       "UNCLASSIFIED" as const,
 
-    isAbnormal:
-      true,
+    isAbnormal: true,
   };
+
+  /* ==========================================================
+     Render
+  ========================================================== */
 
   return (
     <>
@@ -234,7 +226,6 @@ export default function AbnormalSpendingCard({
           shadow-[0_1px_3px_rgba(0,0,0,0.02)]
         "
       >
-
         <div
           className="
             flex
@@ -242,7 +233,6 @@ export default function AbnormalSpendingCard({
             justify-between
           "
         >
-
           {/* ==================================================
               Left
           ================================================== */}
@@ -255,8 +245,9 @@ export default function AbnormalSpendingCard({
               gap-5
             "
           >
-
-            {/* Icon */}
+            {/* ==================================================
+                Icon
+            ================================================== */}
 
             <div
               className="
@@ -271,24 +262,27 @@ export default function AbnormalSpendingCard({
                 text-red-500
               "
             >
-              <AlertCircle
-                size={22}
-              />
+              <AlertCircle size={22} />
             </div>
 
-            {/* Information */}
+            {/* ==================================================
+                Information
+            ================================================== */}
 
             <div className="min-w-0">
-
-              {/* Merchant / Category / Type */}
+              {/* ================================================
+                  Merchant / Category / Type
+              ================================================= */}
 
               <div
                 className="
                   flex
+                  flex-wrap
                   items-center
                   gap-2
                 "
               >
+                {/* Merchant */}
 
                 <h2
                   className="
@@ -336,7 +330,6 @@ export default function AbnormalSpendingCard({
                     }
                   `}
                 >
-
                   {item.type === "AI" ? (
                     <Brain size={14} />
                   ) : (
@@ -346,12 +339,12 @@ export default function AbnormalSpendingCard({
                   {item.type === "AI"
                     ? "AI"
                     : "규칙"}
-
                 </span>
-
               </div>
 
-              {/* Date */}
+              {/* ================================================
+                  Date
+              ================================================= */}
 
               <p
                 className="
@@ -360,18 +353,52 @@ export default function AbnormalSpendingCard({
                   text-[#a3adbd]
                 "
               >
-                {formatDate(
-                  item.date
-                )}
+                {formatDate(item.date)}
               </p>
 
-              {/* Reason */}
+              {/* ================================================
+                  Score
+              ================================================= */}
+
+              <div
+                className="
+                  mt-2
+                  flex
+                  items-center
+                  gap-2
+                "
+              >
+                <span
+                  className="
+                    text-[13px]
+                    font-medium
+                    text-gray-400
+                  "
+                >
+                  이상 지출 점수
+                </span>
+
+                <span
+                  className="
+                    text-[14px]
+                    font-bold
+                    text-red-500
+                  "
+                >
+                  {item.score}점
+                </span>
+              </div>
+
+              {/* ================================================
+                  Reason
+              ================================================= */}
 
               <div
                 className="
                   mt-3
                   inline-flex
-                  items-center
+                  max-w-full
+                  items-start
                   gap-2
                   rounded-xl
                   bg-[#fff2f2]
@@ -379,24 +406,26 @@ export default function AbnormalSpendingCard({
                   py-2
                 "
               >
-
                 <AlertCircle
                   size={18}
-                  className="text-red-500"
+                  className="
+                    mt-0.5
+                    shrink-0
+                    text-red-500
+                  "
                 />
 
                 <span
                   className="
                     text-[15px]
                     font-medium
+                    leading-6
                     text-red-500
                   "
                 >
                   {item.reason}
                 </span>
-
               </div>
-
             </div>
           </div>
 
@@ -413,8 +442,9 @@ export default function AbnormalSpendingCard({
               items-end
             "
           >
-
-            {/* Amount */}
+            {/* ==================================================
+                Amount
+            ================================================== */}
 
             <p
               className="
@@ -425,12 +455,12 @@ export default function AbnormalSpendingCard({
                 text-[#172033]
               "
             >
-              {formatAmount(
-                item.amount
-              )}
+              {formatAmount(item.amount)}
             </p>
 
-            {/* Buttons */}
+            {/* ==================================================
+                Buttons
+            ================================================== */}
 
             <div
               className="
@@ -440,8 +470,9 @@ export default function AbnormalSpendingCard({
                 gap-2
               "
             >
-
-              {/* Category Edit */}
+              {/* ================================================
+                  Category Edit
+              ================================================= */}
 
               <button
                 type="button"
@@ -471,7 +502,9 @@ export default function AbnormalSpendingCard({
                 카테고리 수정
               </button>
 
-              {/* Confirm */}
+              {/* ================================================
+                  Confirm
+              ================================================= */}
 
               <button
                 type="button"
@@ -499,7 +532,6 @@ export default function AbnormalSpendingCard({
                   disabled:opacity-50
                 "
               >
-
                 {isConfirming ? (
                   <Loader2
                     size={15}
@@ -512,12 +544,9 @@ export default function AbnormalSpendingCard({
                 {isConfirming
                   ? "처리 중..."
                   : "확인 완료"}
-
               </button>
-
             </div>
           </div>
-
         </div>
       </div>
 
@@ -529,19 +558,15 @@ export default function AbnormalSpendingCard({
         isOpen={
           isCategoryModalOpen
         }
-
         transaction={
           transactionForModal
         }
-
         category={
           selectedCategory
         }
-
         onCategoryChange={
           setSelectedCategory
         }
-
         onClose={() => {
           setSelectedCategory(
             currentCategory
@@ -551,7 +576,6 @@ export default function AbnormalSpendingCard({
             false
           );
         }}
-
         onSave={
           handleCategorySave
         }
@@ -581,14 +605,12 @@ export default function AbnormalSpendingCard({
             shadow-lg
           "
         >
-
           <Loader2
             size={16}
             className="animate-spin"
           />
 
           카테고리 수정 중...
-
         </div>
       )}
 
@@ -616,14 +638,12 @@ export default function AbnormalSpendingCard({
             shadow-lg
           "
         >
-
           <Loader2
             size={16}
             className="animate-spin"
           />
 
           이상 지출 확인 처리 중...
-
         </div>
       )}
     </>
@@ -634,9 +654,7 @@ export default function AbnormalSpendingCard({
    금액 포맷
 ============================================================ */
 
-function formatAmount(
-  amount: number
-) {
+function formatAmount(amount: number) {
   return `${amount.toLocaleString(
     "ko-KR"
   )}원`;
@@ -646,11 +664,8 @@ function formatAmount(
    날짜 포맷
 ============================================================ */
 
-function formatDate(
-  date: string
-) {
-  const parsedDate =
-    new Date(date);
+function formatDate(date: string) {
+  const parsedDate = new Date(date);
 
   if (
     Number.isNaN(
