@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 import MainLayout from "../../components/layout/MainLayout";
-
 import AbnormalSpendingCard from "./components/AbnormalSpendingCard";
 import AbnormalWarningBanner from "./components/AbnormalWarningBanner";
 
 import api from "../../api/api";
+
+/* ============================================================
+   이상 지출 Item
+============================================================ */
 
 export type AbnormalSpendingItem = {
   transactionId: number;
@@ -19,12 +22,20 @@ export type AbnormalSpendingItem = {
   reason: string;
 };
 
+/* ============================================================
+   Backend Response
+============================================================ */
+
 type AbnormalApiResponse = {
   isSuccess: boolean;
   code: string;
   message: string;
   result: AbnormalSpendingItem[];
 };
+
+/* ============================================================
+   Page
+============================================================ */
 
 export default function AbnormalSpendingPage() {
   const [abnormalSpending, setAbnormalSpending] = useState<
@@ -35,32 +46,76 @@ export default function AbnormalSpendingPage() {
 
   const [error, setError] = useState("");
 
+  /* ============================================================
+     이상 지출 조회
+     
+     GET /api/abnormal
+  ============================================================ */
+
   useEffect(() => {
     const fetchAbnormalSpendings = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const response =
-          await api.get<AbnormalApiResponse>(
-            "/api/abnormal"
-          );
+        const response = await api.get<AbnormalApiResponse>(
+          "/api/abnormal"
+        );
 
         console.log(
-          "이상 지출 API 응답:",
+          "전체 API 응답:",
+          response
+        );
+
+        console.log(
+          "API 응답 데이터:",
           response.data
         );
 
-        if (response.data.isSuccess) {
-          setAbnormalSpending(
-            response.data.result
-          );
-        } else {
+        /*
+         * api.ts의 interceptor에서
+         *
+         * return response.data;
+         *
+         * 처리를 하고 있을 수도 있기 때문에
+         * 두 가지 형태를 모두 대응
+         */
+
+        const responseData =
+          response.data ?? response;
+
+        console.log(
+          "최종 처리할 데이터:",
+          responseData
+        );
+
+        /* ========================================================
+           성공 여부 확인
+        ======================================================== */
+
+        if (!responseData.isSuccess) {
           setError(
-            response.data.message ||
+            responseData.message ||
             "이상 지출 정보를 불러오지 못했습니다."
           );
+
+          return;
         }
+
+        /* ========================================================
+           result 확인
+        ======================================================== */
+
+        const result =
+          responseData.result ?? [];
+
+        console.log(
+          "이상 지출 목록:",
+          result
+        );
+
+        setAbnormalSpending(result);
+
       } catch (error) {
         console.error(
           "이상 지출 조회 실패:",
@@ -78,13 +133,26 @@ export default function AbnormalSpendingPage() {
     fetchAbnormalSpendings();
   }, []);
 
-  const abnormalCount = abnormalSpending.length;
+  /* ============================================================
+     이상 지출 개수
+  ============================================================ */
+
+  const abnormalCount =
+    abnormalSpending.length;
+
+  /* ============================================================
+     Render
+  ============================================================ */
 
   return (
     <MainLayout activeMenu="이상 지출">
+
       <div className="w-full px-8 py-8 lg:px-12">
 
-        {/* Header */}
+        {/* ======================================================
+            Header
+        ====================================================== */}
+
         <header className="mb-7">
           <h1 className="text-[28px] font-bold tracking-tight text-[#172033]">
             이상 지출
@@ -95,20 +163,31 @@ export default function AbnormalSpendingPage() {
           </p>
         </header>
 
-        {/* Content */}
+        {/* ======================================================
+            Content
+        ====================================================== */}
+
         <div className="mt-6 space-y-6">
 
-          {/* Warning */}
+          {/* ====================================================
+              Warning
+          ==================================================== */}
+
           {!loading && !error && (
             <AbnormalWarningBanner
               count={abnormalCount}
             />
           )}
 
-          {/* Loading */}
+          {/* ====================================================
+              Loading
+          ==================================================== */}
+
           {loading && (
             <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-gray-100 bg-white">
+
               <div className="flex items-center gap-2 text-[#8B95A7]">
+
                 <Loader2
                   size={20}
                   className="animate-spin"
@@ -117,33 +196,48 @@ export default function AbnormalSpendingPage() {
                 <span>
                   이상 지출을 분석하고 있습니다...
                 </span>
+
               </div>
+
             </div>
           )}
 
-          {/* Error */}
+          {/* ====================================================
+              Error
+          ==================================================== */}
+
           {!loading && error && (
             <div className="flex min-h-[250px] items-center justify-center rounded-2xl border border-red-100 bg-white">
+
               <div className="flex items-center gap-2 text-red-500">
+
                 <AlertCircle size={20} />
 
                 <span>
                   {error}
                 </span>
+
               </div>
+
             </div>
           )}
 
-          {/* Empty */}
+          {/* ====================================================
+              Empty
+          ==================================================== */}
+
           {!loading &&
             !error &&
             abnormalSpending.length === 0 && (
+
               <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white">
 
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
+
                   <span className="text-2xl">
                     ✓
                   </span>
+
                 </div>
 
                 <h2 className="text-[18px] font-bold text-[#172033]">
@@ -154,25 +248,36 @@ export default function AbnormalSpendingPage() {
                   현재까지 평소와 다른 소비 패턴이
                   발견되지 않았습니다.
                 </p>
+
               </div>
             )}
 
-          {/* Abnormal Spending List */}
+          {/* ====================================================
+              Abnormal Spending List
+          ==================================================== */}
+
           {!loading &&
             !error &&
             abnormalSpending.length > 0 && (
+
               <div className="space-y-5">
+
                 {abnormalSpending.map((item) => (
+
                   <AbnormalSpendingCard
                     key={item.transactionId}
                     item={item}
                   />
+
                 ))}
+
               </div>
             )}
 
         </div>
+
       </div>
+
     </MainLayout>
   );
 }
