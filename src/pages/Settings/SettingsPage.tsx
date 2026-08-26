@@ -3,10 +3,7 @@
 import MainLayout from "../../components/layout/MainLayout";
 
 import ProfileSection from "./components/ProfileSection";
-import BudgetSection from "./components/BudgetSection";
-import NotificationSection from "./components/NotificationSection";
-import AutoRuleSection from "./components/AutoRuleSection";
-import DataManagementSection from "./components/DataManagementSection";
+import SubscriptionSection from "./components/SubscriptionSection";
 
 export default function SettingsPage() {
   return (
@@ -24,10 +21,7 @@ export default function SettingsPage() {
 
         <div className="mt-6 space-y-6">
           <ProfileSection />
-          <BudgetSection />
-          <NotificationSection />
-          <AutoRuleSection />
-          <DataManagementSection />
+          <SubscriptionSection />
         </div>
       </div>
     </MainLayout>

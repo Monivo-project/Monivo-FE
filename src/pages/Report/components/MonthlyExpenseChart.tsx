@@ -1,155 +1,295 @@
-import React from "react";
-import { monthlyExpenses } from "../data/reportData";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-const maxExpense = 2400000;
+import api from "../../../api/api";
+
+interface MonthlySpending {
+  month: string;
+  amount: number;
+}
+
+interface MonthlySpendingResponse {
+  isSuccess: boolean;
+  code: string;
+  message: string;
+  result: MonthlySpending[];
+}
 
 export default function MonthlyExpenseChart() {
-  const width = 1000;
-  const height = 250;
+  const [monthlyData, setMonthlyData] = useState<
+    MonthlySpending[]
+  >([]);
 
-  const paddingLeft = 70;
-  const paddingRight = 20;
-  const paddingTop = 20;
-  const paddingBottom = 40;
+  const [loading, setLoading] = useState(true);
 
-  const chartWidth =
-    width - paddingLeft - paddingRight;
+  // ============================================================
+  // 최근 6개월 지출 조회
+  // ============================================================
 
-  const chartHeight =
-    height - paddingTop - paddingBottom;
+  useEffect(() => {
+    const fetchMonthlySpending = async () => {
+      try {
+        setLoading(true);
 
-  const points = monthlyExpenses.map((item, index) => {
-    const x =
-      paddingLeft +
-      (index / (monthlyExpenses.length - 1)) *
-        chartWidth;
+        const response =
+          await api.get<MonthlySpendingResponse>(
+            "/api/home/monthly-spending"
+          );
 
-    const y =
-      paddingTop +
-      chartHeight -
-      (item.amount / maxExpense) *
-        chartHeight;
+        console.log(
+          "최근 6개월 지출:",
+          response.data
+        );
 
-    return { x, y };
-  });
+        setMonthlyData(
+          response.data.result ?? []
+        );
+      } catch (error: any) {
+        console.error(
+          "최근 6개월 지출 조회 실패:",
+          error
+        );
 
-  const linePath = points
-    .map((point, index) => {
-      return `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`;
-    })
-    .join(" ");
+        console.error(
+          "Status:",
+          error.response?.status
+        );
 
-  const areaPath = `
-    ${linePath}
-    L ${points[points.length - 1].x} ${paddingTop + chartHeight}
-    L ${points[0].x} ${paddingTop + chartHeight}
-    Z
-  `;
+        console.error(
+          "Response:",
+          error.response?.data
+        );
 
-  const yLabels = [
-    { value: 2400000, label: "240만" },
-    { value: 1800000, label: "180만" },
-    { value: 1200000, label: "120만" },
-    { value: 600000, label: "60만" },
-    { value: 0, label: "0만" },
-  ];
+        setMonthlyData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMonthlySpending();
+  }, []);
+
+  // ============================================================
+  // 최대 금액
+  // ============================================================
+
+  const maxAmount = useMemo(() => {
+    if (monthlyData.length === 0) {
+      return 100000;
+    }
+
+    const max = Math.max(
+      ...monthlyData.map(
+        (item) => item.amount
+      )
+    );
+
+    if (max <= 0) {
+      return 100000;
+    }
+
+    // 그래프 위쪽에 여유 공간
+    return Math.ceil(
+      (max * 1.2) / 10000
+    ) * 10000;
+  }, [monthlyData]);
+
+  // ============================================================
+  // Y축 금액 표시
+  // ============================================================
+
+  const formatAmount = (
+    value: number
+  ) => {
+    if (value >= 10000) {
+      return `${Math.round(
+        value / 10000
+      )}만`;
+    }
+
+    return value.toLocaleString();
+  };
+
+  // ============================================================
+  // Y축 눈금
+  // ============================================================
+
+  const yAxisTicks = useMemo(() => {
+    const tickCount = 4;
+
+    return Array.from(
+      { length: tickCount + 1 },
+      (_, index) =>
+        Math.round(
+          (maxAmount / tickCount) *
+          index
+        )
+    );
+  }, [maxAmount]);
 
   return (
-    <div className="w-full overflow-hidden">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-[270px] w-full"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient
-            id="expenseArea"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
+    <div className="w-full">
+      {/* ======================================================
+          Graph
+      ====================================================== */}
+
+      <div className="h-[300px] w-full">
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-[#9AA5B5]">
+              지출 데이터를 불러오는 중...
+            </p>
+          </div>
+        ) : monthlyData.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-[#9AA5B5]">
+              지출 데이터가 없습니다.
+            </p>
+          </div>
+        ) : (
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
           >
-            <stop
-              offset="0%"
-              stopColor="#2563EB"
-              stopOpacity="0.12"
-            />
+            <AreaChart
+              data={monthlyData}
+              margin={{
+                top: 15,
+                right: 20,
+                left: 10,
+                bottom: 5,
+              }}
+            >
+              {/* ==================================================
+                  영역 Gradient
+              ================================================== */}
 
-            <stop
-              offset="100%"
-              stopColor="#2563EB"
-              stopOpacity="0"
-            />
-          </linearGradient>
-        </defs>
+              <defs>
+                <linearGradient
+                  id="monthlyExpenseGradient"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="#2563EB"
+                    stopOpacity={0.18}
+                  />
 
-        {/* Y축 */}
-        {yLabels.map((label) => {
-          const y =
-            paddingTop +
-            chartHeight -
-            (label.value / maxExpense) *
-              chartHeight;
+                  <stop
+                    offset="100%"
+                    stopColor="#2563EB"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
 
-          return (
-            <React.Fragment key={label.label}>
-              <line
-                x1={paddingLeft}
-                x2={width - paddingRight}
-                y1={y}
-                y2={y}
-                stroke="#E9EDF3"
-                strokeDasharray="3 5"
+              {/* ==================================================
+                  X축
+              ================================================== */}
+
+              <XAxis
+                dataKey="month"
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#94A3B8",
+                  fontSize: 14,
+                }}
+                padding={{
+                  left: 10,
+                  right: 10,
+                }}
               />
 
-              <text
-                x={paddingLeft - 15}
-                y={y + 4}
-                textAnchor="end"
-                fontSize="14"
-                fill="#94A3B8"
-              >
-                {label.label}
-              </text>
-            </React.Fragment>
-          );
-        })}
+              {/* ==================================================
+                  Y축
+              ================================================== */}
 
-        {/* 영역 */}
-        <path
-          d={areaPath}
-          fill="url(#expenseArea)"
-        />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#94A3B8",
+                  fontSize: 13,
+                }}
+                tickFormatter={(value) =>
+                  formatAmount(
+                    Number(value)
+                  )
+                }
+                domain={[
+                  0,
+                  maxAmount,
+                ]}
+                ticks={yAxisTicks}
+                width={55}
+              />
 
-        {/* 라인 */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="#2563EB"
-          strokeWidth="3"
-        />
+              {/* ==================================================
+                  Tooltip
+              ================================================== */}
 
-        {/* X축 */}
-        {monthlyExpenses.map((item, index) => {
-          const x =
-            paddingLeft +
-            (index / (monthlyExpenses.length - 1)) *
-              chartWidth;
+              <Tooltip
+                cursor={{
+                  stroke: "#CBD5E1",
+                  strokeDasharray:
+                    "4 4",
+                }}
+                contentStyle={{
+                  border:
+                    "1px solid #E5EAF0",
+                  borderRadius:
+                    "10px",
+                  boxShadow:
+                    "0 4px 12px rgba(0,0,0,0.08)",
+                  fontSize: "13px",
+                }}
+                formatter={(value) => [
+                  `₩${Number(
+                    value
+                  ).toLocaleString()}`,
+                  "지출",
+                ]}
+              />
 
-          return (
-            <text
-              key={item.month}
-              x={x}
-              y={height - 12}
-              textAnchor="middle"
-              fontSize="14"
-              fill="#94A3B8"
-            >
-              {item.month}
-            </text>
-          );
-        })}
-      </svg>
+              {/* ==================================================
+                  꺾은선 + 영역
+              ================================================== */}
+
+              <Area
+                type="monotone"
+                dataKey="amount"
+                stroke="#2563EB"
+                strokeWidth={3}
+                fill="url(#monthlyExpenseGradient)"
+                dot={{
+                  r: 4,
+                  fill: "#2563EB",
+                  stroke: "#FFFFFF",
+                  strokeWidth: 2,
+                }}
+                activeDot={{
+                  r: 6,
+                  fill: "#2563EB",
+                  stroke: "#FFFFFF",
+                  strokeWidth: 2,
+                }}
+                animationDuration={700}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 }

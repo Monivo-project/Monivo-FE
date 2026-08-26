@@ -1,11 +1,83 @@
+import { useEffect, useState } from "react";
+import { AlertCircle, Loader2 } from "lucide-react";
+
 import MainLayout from "../../components/layout/MainLayout";
 
 import AbnormalSpendingCard from "./components/AbnormalSpendingCard";
 import AbnormalWarningBanner from "./components/AbnormalWarningBanner";
 
-import { abnormalSpending } from "./data/abnormalSpendingData";
+import api from "../../api/api";
+
+export type AbnormalSpendingItem = {
+  transactionId: number;
+  merchant: string;
+  amount: number;
+  category: string;
+  date: string;
+  score: number;
+  type: "AI" | "RULE";
+  reason: string;
+};
+
+type AbnormalApiResponse = {
+  isSuccess: boolean;
+  code: string;
+  message: string;
+  result: AbnormalSpendingItem[];
+};
 
 export default function AbnormalSpendingPage() {
+  const [abnormalSpending, setAbnormalSpending] = useState<
+    AbnormalSpendingItem[]
+  >([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchAbnormalSpendings = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response =
+          await api.get<AbnormalApiResponse>(
+            "/api/abnormal"
+          );
+
+        console.log(
+          "이상 지출 API 응답:",
+          response.data
+        );
+
+        if (response.data.isSuccess) {
+          setAbnormalSpending(
+            response.data.result
+          );
+        } else {
+          setError(
+            response.data.message ||
+            "이상 지출 정보를 불러오지 못했습니다."
+          );
+        }
+      } catch (error) {
+        console.error(
+          "이상 지출 조회 실패:",
+          error
+        );
+
+        setError(
+          "이상 지출 정보를 불러오지 못했습니다."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAbnormalSpendings();
+  }, []);
+
   const abnormalCount = abnormalSpending.length;
 
   return (
@@ -27,19 +99,77 @@ export default function AbnormalSpendingPage() {
         <div className="mt-6 space-y-6">
 
           {/* Warning */}
-          <AbnormalWarningBanner
-            count={abnormalCount}
-          />
+          {!loading && !error && (
+            <AbnormalWarningBanner
+              count={abnormalCount}
+            />
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-gray-100 bg-white">
+              <div className="flex items-center gap-2 text-[#8B95A7]">
+                <Loader2
+                  size={20}
+                  className="animate-spin"
+                />
+
+                <span>
+                  이상 지출을 분석하고 있습니다...
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div className="flex min-h-[250px] items-center justify-center rounded-2xl border border-red-100 bg-white">
+              <div className="flex items-center gap-2 text-red-500">
+                <AlertCircle size={20} />
+
+                <span>
+                  {error}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loading &&
+            !error &&
+            abnormalSpending.length === 0 && (
+              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-gray-100 bg-white">
+
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
+                  <span className="text-2xl">
+                    ✓
+                  </span>
+                </div>
+
+                <h2 className="text-[18px] font-bold text-[#172033]">
+                  이상 지출이 없습니다.
+                </h2>
+
+                <p className="mt-2 text-[14px] text-[#9AA5B5]">
+                  현재까지 평소와 다른 소비 패턴이
+                  발견되지 않았습니다.
+                </p>
+              </div>
+            )}
 
           {/* Abnormal Spending List */}
-          <div className="space-y-5">
-            {abnormalSpending.map((item) => (
-              <AbnormalSpendingCard
-                key={item.id}
-                item={item}
-              />
-            ))}
-          </div>
+          {!loading &&
+            !error &&
+            abnormalSpending.length > 0 && (
+              <div className="space-y-5">
+                {abnormalSpending.map((item) => (
+                  <AbnormalSpendingCard
+                    key={item.transactionId}
+                    item={item}
+                  />
+                ))}
+              </div>
+            )}
 
         </div>
       </div>

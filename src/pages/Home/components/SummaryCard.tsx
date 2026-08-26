@@ -6,9 +6,10 @@ type SummaryCardProps = {
   icon: ReactNode;
   label: string;
   value: string;
-  subText: string;
+  subText: React.ReactNode; // 수정
   tone: Tone;
   active?: boolean;
+  onClick?: () => void;
 };
 
 export default function SummaryCard({
@@ -18,6 +19,7 @@ export default function SummaryCard({
   subText,
   tone,
   active = false,
+  onClick,
 }: SummaryCardProps) {
   const iconStyle: Record<Tone, string> = {
     blue: "bg-[#EEF4FF] text-[#2F6BEB]",
@@ -35,14 +37,18 @@ export default function SummaryCard({
 
   return (
     <div
+      onClick={onClick}
       className={`
         flex min-h-[150px] items-center gap-4
         rounded-2xl border bg-white p-5
         transition-all
-        ${
-          active
-            ? "border-[#2F6BEB] shadow-[0_4px_20px_rgba(47,107,235,0.10)]"
-            : "border-[#E9EDF3]"
+        ${onClick
+          ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md"
+          : ""
+        }
+        ${active
+          ? "border-[#2F6BEB] shadow-[0_4px_20px_rgba(47,107,235,0.10)]"
+          : "border-[#E9EDF3]"
         }
       `}
     >

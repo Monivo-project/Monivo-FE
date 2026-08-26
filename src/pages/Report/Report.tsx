@@ -4,13 +4,17 @@ import MainLayout from "../../components/layout/MainLayout";
 
 import MonthlyExpenseChart from "./components/MonthlyExpenseChart";
 import CategoryDistribution from "./components/CategoryDistribution";
-import BudgetComparison from "./components/BudgetComparison";
+import ExpectedBudget from "./components/ExpectedBudget";
 
 export default function ReportPage() {
   return (
     <MainLayout activeMenu="소비 리포트">
       <div className="w-full px-8 py-8 lg:px-12">
-        {/* Header */}
+
+        {/* =====================================================
+            Header
+        ===================================================== */}
+
         <header className="mb-7 flex items-start justify-between">
           <div>
             <h1 className="text-[28px] font-bold tracking-tight text-[#172033]">
@@ -35,7 +39,10 @@ export default function ReportPage() {
           </button>
         </header>
 
-        {/* Monthly Expense */}
+        {/* =====================================================
+            Monthly Expense
+        ===================================================== */}
+
         <section className="mb-6 rounded-[18px] border border-[#EEF0F3] bg-white px-6 py-6 shadow-[0_1px_3px_rgba(15,23,42,0.02)]">
           <h2 className="mb-3 text-[16px] font-bold text-[#334155]">
             월별 지출 추이 (최근 6개월)
@@ -44,9 +51,16 @@ export default function ReportPage() {
           <MonthlyExpenseChart />
         </section>
 
-        {/* Bottom Grid */}
+        {/* =====================================================
+            Bottom Grid
+        ===================================================== */}
+
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          {/* Category */}
+
+          {/* ===================================================
+              Category Distribution
+          =================================================== */}
+
           <section className="min-h-[430px] rounded-[18px] border border-[#EEF0F3] bg-white px-6 py-6 shadow-[0_1px_3px_rgba(15,23,42,0.02)]">
             <h2 className="mb-7 text-[16px] font-bold text-[#334155]">
               카테고리별 분포
@@ -55,14 +69,18 @@ export default function ReportPage() {
             <CategoryDistribution />
           </section>
 
-          {/* Budget */}
+          {/* ===================================================
+              Expected Budget
+          =================================================== */}
+
           <section className="min-h-[430px] rounded-[18px] border border-[#EEF0F3] bg-white px-6 py-6 shadow-[0_1px_3px_rgba(15,23,42,0.02)]">
             <h2 className="mb-7 text-[16px] font-bold text-[#334155]">
-              예산 대비 실 지출
+              AI 예상 지출 및 예산
             </h2>
 
-            <BudgetComparison />
+            <ExpectedBudget />
           </section>
+
         </div>
       </div>
     </MainLayout>
