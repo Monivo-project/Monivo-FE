@@ -1,27 +1,90 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-import { CATEGORY_OPTIONS } from "../data/uncategorizedData";
+type Category = {
+  id: number;
+  name: string;
+};
+
+const CATEGORY_OPTIONS: Category[] = [
+  {
+    id: 1,
+    name: "식비",
+  },
+  {
+    id: 2,
+    name: "쇼핑/생활",
+  },
+  {
+    id: 3,
+    name: "교통",
+  },
+  {
+    id: 4,
+    name: "주거/통신",
+  },
+  {
+    id: 5,
+    name: "여가/문화",
+  },
+  {
+    id: 6,
+    name: "의료/건강",
+  },
+  {
+    id: 7,
+    name: "교육",
+  },
+  {
+    id: 8,
+    name: "여행",
+  },
+  {
+    id: 9,
+    name: "금융",
+  },
+  {
+    id: 10,
+    name: "선물/경조사",
+  },
+  {
+    id: 11,
+    name: "반려동물",
+  },
+  {
+    id: 12,
+    name: "기타",
+  },
+];
 
 type CategoryDropdownProps = {
-  transactionId: string;
+  transactionId: number;
+  onCategorySelect: (
+    categoryId: number,
+    categoryName: string
+  ) => void;
 };
 
 export default function CategoryDropdown({
   transactionId,
+  onCategorySelect,
 }: CategoryDropdownProps) {
   const [open, setOpen] = useState(false);
 
-  const handleCategorySelect = (category: string) => {
+  const handleCategorySelect = (
+    category: Category
+  ) => {
     console.log(
-      "카테고리 변경:",
+      "카테고리 선택:",
       transactionId,
-      category
+      category.id,
+      category.name
     );
 
-    // TODO:
-    // transactionId를 이용해서
-    // 카테고리 변경 API 연결
+    onCategorySelect(
+      category.id,
+      category.name
+    );
 
     setOpen(false);
   };
@@ -51,25 +114,25 @@ export default function CategoryDropdown({
         <div
           className="
             absolute left-0 z-10 mt-2
-            w-40 overflow-hidden
+            w-44 overflow-hidden
             rounded-xl border border-gray-100
             bg-white shadow-lg
           "
         >
           {CATEGORY_OPTIONS.map((category) => (
             <button
-              key={category}
+              key={category.id}
               type="button"
               onClick={() =>
                 handleCategorySelect(category)
               }
               className="
-                block w-full px-4 py-2
+                block w-full px-4 py-2.5
                 text-left text-sm text-gray-700
                 hover:bg-gray-50
               "
             >
-              {category}
+              {category.name}
             </button>
           ))}
         </div>

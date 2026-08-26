@@ -1,10 +1,12 @@
-export type AiTransaction = {
-  id: string;
-  title: string;
+export interface AiTransaction {
+  transactionId: number;
+  merchant: string;
+  candidateCategoryId: number | null;
+  candidateCategoryName: string | null;
   date: string;
   amount: number;
-  aiCategory: string;
-};
+  confidence: number | null;
+}
 
 export type ManualTransaction = {
   id: string;
@@ -13,22 +15,6 @@ export type ManualTransaction = {
   amount: number;
 };
 
-export const AI_SUGGESTED: AiTransaction[] = [
-  {
-    id: "tx-1",
-    title: "위워크 멤버십",
-    date: "8월 16일",
-    amount: 450000,
-    aiCategory: "교육",
-  },
-  {
-    id: "tx-2",
-    title: "당근마켓 직거래",
-    date: "8월 15일",
-    amount: 85000,
-    aiCategory: "쇼핑",
-  },
-];
 
 export const MANUAL_NEEDED: ManualTransaction[] = [
   {
