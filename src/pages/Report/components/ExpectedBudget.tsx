@@ -1,6 +1,19 @@
 import { useEffect, useState } from "react";
-import { Brain, CalendarDays, TrendingDown, Wallet } from "lucide-react";
+import {
+    Brain,
+    CalendarDays,
+    TrendingDown,
+    Wallet,
+} from "lucide-react";
 import api from "../../../api/api";
+
+// ============================================================
+// Props
+// ============================================================
+
+interface ExpectedBudgetProps {
+    totalExpense: number;
+}
 
 // ============================================================
 // API Response Interface
@@ -33,7 +46,9 @@ const formatAmount = (amount: number) => {
 // Component
 // ============================================================
 
-export default function ExpectedBudget() {
+export default function ExpectedBudget({
+    totalExpense,
+}: ExpectedBudgetProps) {
     const [data, setData] =
         useState<ExpectedBudgetResponse["result"] | null>(null);
 
@@ -125,13 +140,38 @@ export default function ExpectedBudget() {
     }
 
     // ============================================================
+    // 현재 실제 지출
+    //
+    // Home의 summary.totalExpense 사용
+    // ============================================================
+
+    const currentExpense =
+        Number(totalExpense ?? 0);
+
+    // ============================================================
+    // 남은 예상 지출
+    //
+    // 예상 지출 - 현재 실제 지출
+    //
+    // 음수가 되지 않도록 Math.max(0, ...)
+    // ============================================================
+
+    const remainingExpectedAmount =
+        Math.max(
+            data.expectedAmount - currentExpense,
+            0
+        );
+
+    // ============================================================
     // 현재 사용 비율
+    //
+    // 현재 실제 지출 / AI 예상 지출
     // ============================================================
 
     const usagePercentage =
         data.expectedAmount > 0
             ? Math.min(
-                (data.currentAmount /
+                (currentExpense /
                     data.expectedAmount) *
                 100,
                 100
@@ -146,8 +186,8 @@ export default function ExpectedBudget() {
         <div className="flex flex-col gap-5">
 
             {/* ======================================================
-          주요 예상 지출
-      ====================================================== */}
+                주요 예상 지출
+            ====================================================== */}
 
             <div className="grid grid-cols-2 gap-4">
 
@@ -155,6 +195,7 @@ export default function ExpectedBudget() {
 
                 <div className="rounded-[14px] bg-[#F8FAFC] p-5">
                     <div className="mb-3 flex items-center gap-2">
+
                         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#EEF2FF]">
                             <TrendingDown
                                 size={17}
@@ -165,6 +206,7 @@ export default function ExpectedBudget() {
                         <span className="text-[13px] font-medium text-[#64748B]">
                             이번 달 예상 지출
                         </span>
+
                     </div>
 
                     <p className="text-[22px] font-bold text-[#172033]">
@@ -178,6 +220,7 @@ export default function ExpectedBudget() {
 
                 <div className="rounded-[14px] bg-[#F8FAFC] p-5">
                     <div className="mb-3 flex items-center gap-2">
+
                         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#ECFDF5]">
                             <Wallet
                                 size={17}
@@ -188,6 +231,7 @@ export default function ExpectedBudget() {
                         <span className="text-[13px] font-medium text-[#64748B]">
                             권장 예산
                         </span>
+
                     </div>
 
                     <p className="text-[22px] font-bold text-[#172033]">
@@ -200,14 +244,15 @@ export default function ExpectedBudget() {
             </div>
 
             {/* ======================================================
-          현재 사용 / 남은 예상 지출
-      ====================================================== */}
+                현재 사용 / 남은 예상 지출
+            ====================================================== */}
 
             <div className="rounded-[14px] border border-[#EEF0F3] p-5">
 
                 <div className="mb-4 flex items-center justify-between">
 
                     <div className="flex items-center gap-2">
+
                         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FFF7ED]">
                             <CalendarDays
                                 size={17}
@@ -218,28 +263,36 @@ export default function ExpectedBudget() {
                         <span className="text-[13px] font-medium text-[#64748B]">
                             현재까지 사용
                         </span>
+
                     </div>
+
+                    {/* 실제 Home 지출 금액 */}
 
                     <span className="text-[14px] font-semibold text-[#475569]">
                         {formatAmount(
-                            data.currentAmount
+                            currentExpense
                         )}
                     </span>
 
                 </div>
 
-                {/* 게이지 */}
+                {/* ==================================================
+                    게이지
+                ================================================== */}
 
                 <div className="h-[8px] w-full overflow-hidden rounded-full bg-[#EEF0F3]">
+
                     <div
                         className="h-full rounded-full bg-[#6366F1] transition-all duration-700"
                         style={{
                             width: `${usagePercentage}%`,
                         }}
                     />
+
                 </div>
 
                 <div className="mt-2 flex items-center justify-between">
+
                     <span className="text-[11px] text-[#A5AEBB]">
                         예상 지출 대비
                     </span>
@@ -247,50 +300,57 @@ export default function ExpectedBudget() {
                     <span className="text-[11px] font-medium text-[#64748B]">
                         {usagePercentage.toFixed(1)}%
                     </span>
+
                 </div>
 
             </div>
 
             {/* ======================================================
-          남은 예상 지출
-      ====================================================== */}
+                남은 예상 지출
+            ====================================================== */}
 
             <div className="flex items-center justify-between rounded-[14px] bg-[#F8FAFC] px-5 py-4">
 
                 <div>
+
                     <p className="text-[12px] text-[#94A3B8]">
                         이번 달 남은 예상 지출
                     </p>
 
                     <p className="mt-1 text-[18px] font-bold text-[#172033]">
                         {formatAmount(
-                            data.remainingExpectedAmount
+                            remainingExpectedAmount
                         )}
                     </p>
+
                 </div>
 
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+
                     <Wallet
                         size={17}
                         className="text-[#6366F1]"
                     />
+
                 </div>
 
             </div>
 
             {/* ======================================================
-          AI 예측 정보
-      ====================================================== */}
+                AI 예측 정보
+            ====================================================== */}
 
             <div className="rounded-[14px] border border-[#E8EAFD] bg-[#F8F9FF] p-5">
 
                 <div className="mb-3 flex items-center gap-2">
 
                     <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#EDE9FE]">
+
                         <Brain
                             size={17}
                             className="text-[#7C3AED]"
                         />
+
                     </div>
 
                     <span className="text-[13px] font-semibold text-[#475569]">
