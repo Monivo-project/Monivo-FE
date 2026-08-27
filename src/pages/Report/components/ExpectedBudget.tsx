@@ -140,43 +140,48 @@ export default function ExpectedBudget({
     }
 
     // ============================================================
-    // 현재 실제 지출
+    // ⭐ 현재까지 사용 금액
     //
-    // Home의 summary.totalExpense 사용
+    // 기존:
+    // data.currentAmount
+    //
+    // 변경:
+    // ReportPage에서 전달받은 totalExpense
     // ============================================================
 
-    const currentExpense =
-        Number(totalExpense ?? 0);
+    const currentAmount =
+        Number(totalExpense) || 0;
 
     // ============================================================
-    // 남은 예상 지출
+    // ⭐ 예상 지출 대비 현재 사용 비율
     //
-    // 예상 지출 - 현재 실제 지출
-    //
-    // 음수가 되지 않도록 Math.max(0, ...)
-    // ============================================================
-
-    const remainingExpectedAmount =
-        Math.max(
-            data.expectedAmount - currentExpense,
-            0
-        );
-
-    // ============================================================
-    // 현재 사용 비율
-    //
-    // 현재 실제 지출 / AI 예상 지출
+    // 현재 사용 / 예상 지출 * 100
     // ============================================================
 
     const usagePercentage =
         data.expectedAmount > 0
             ? Math.min(
-                (currentExpense /
+                (currentAmount /
                     data.expectedAmount) *
                 100,
                 100
             )
             : 0;
+
+    // ============================================================
+    // ⭐ 이번 달 남은 예상 지출
+    //
+    // 예상 지출 - 현재까지 사용
+    //
+    // 음수가 되지 않도록 Math.max 사용
+    // ============================================================
+
+    const remainingExpectedAmount =
+        Math.max(
+            data.expectedAmount -
+            currentAmount,
+            0
+        );
 
     // ============================================================
     // Render
@@ -194,13 +199,16 @@ export default function ExpectedBudget({
                 {/* 예상 지출 */}
 
                 <div className="rounded-[14px] bg-[#F8FAFC] p-5">
+
                     <div className="mb-3 flex items-center gap-2">
 
                         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#EEF2FF]">
+
                             <TrendingDown
                                 size={17}
                                 className="text-[#6366F1]"
                             />
+
                         </div>
 
                         <span className="text-[13px] font-medium text-[#64748B]">
@@ -214,18 +222,22 @@ export default function ExpectedBudget({
                             data.expectedAmount
                         )}
                     </p>
+
                 </div>
 
                 {/* 권장 예산 */}
 
                 <div className="rounded-[14px] bg-[#F8FAFC] p-5">
+
                     <div className="mb-3 flex items-center gap-2">
 
                         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#ECFDF5]">
+
                             <Wallet
                                 size={17}
                                 className="text-[#10B981]"
                             />
+
                         </div>
 
                         <span className="text-[13px] font-medium text-[#64748B]">
@@ -239,12 +251,13 @@ export default function ExpectedBudget({
                             data.recommendedBudget
                         )}
                     </p>
+
                 </div>
 
             </div>
 
             {/* ======================================================
-                현재 사용 / 남은 예상 지출
+                ⭐ 현재 사용 / 남은 예상 지출
             ====================================================== */}
 
             <div className="rounded-[14px] border border-[#EEF0F3] p-5">
@@ -254,10 +267,12 @@ export default function ExpectedBudget({
                     <div className="flex items-center gap-2">
 
                         <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FFF7ED]">
+
                             <CalendarDays
                                 size={17}
                                 className="text-[#F97316]"
                             />
+
                         </div>
 
                         <span className="text-[13px] font-medium text-[#64748B]">
@@ -266,11 +281,11 @@ export default function ExpectedBudget({
 
                     </div>
 
-                    {/* 실제 Home 지출 금액 */}
+                    {/* ⭐ summary.totalExpense */}
 
                     <span className="text-[14px] font-semibold text-[#475569]">
                         {formatAmount(
-                            currentExpense
+                            currentAmount
                         )}
                     </span>
 
@@ -306,7 +321,7 @@ export default function ExpectedBudget({
             </div>
 
             {/* ======================================================
-                남은 예상 지출
+                ⭐ 남은 예상 지출
             ====================================================== */}
 
             <div className="flex items-center justify-between rounded-[14px] bg-[#F8FAFC] px-5 py-4">
