@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   AlertCircle,
   Loader2,
@@ -42,6 +43,7 @@ type AbnormalApiResponse = {
 ============================================================ */
 
 export default function AbnormalSpendingPage() {
+
   const [
     abnormalSpending,
     setAbnormalSpending,
@@ -53,16 +55,19 @@ export default function AbnormalSpendingPage() {
   const [error, setError] =
     useState("");
 
-  /* ============================================================
+  /* ==========================================================
      이상 지출 조회
 
      GET /api/abnormal
-  ============================================================ */
+  ========================================================== */
 
   useEffect(() => {
+
     const fetchAbnormalSpendings =
       async () => {
+
         try {
+
           setLoading(true);
           setError("");
 
@@ -76,7 +81,10 @@ export default function AbnormalSpendingPage() {
             response.data
           );
 
-          if (response.data.isSuccess) {
+          if (
+            response.data.isSuccess
+          ) {
+
             console.log(
               "이상 지출 목록:",
               response.data.result
@@ -85,14 +93,18 @@ export default function AbnormalSpendingPage() {
             setAbnormalSpending(
               response.data.result ?? []
             );
+
           } else {
+
             setError(
               response.data.message ||
               "이상 지출 정보를 불러오지 못했습니다."
             );
+
           }
 
         } catch (error) {
+
           console.error(
             "이상 지출 조회 실패:",
             error
@@ -103,7 +115,9 @@ export default function AbnormalSpendingPage() {
           );
 
         } finally {
+
           setLoading(false);
+
         }
       };
 
@@ -111,40 +125,54 @@ export default function AbnormalSpendingPage() {
 
   }, []);
 
-  /* ============================================================
+  /* ==========================================================
      이상 지출 확인 완료
-     
-     자식 Card에서 확인 완료 후 호출
-     
-     해당 transactionId를 리스트에서 제거
-  ============================================================ */
 
-  const handleConfirmAbnormal = (
-    transactionId: number
-  ) => {
-    setAbnormalSpending((prev) =>
-      prev.filter(
-        (item) =>
-          item.transactionId !== transactionId
-      )
-    );
-  };
+     Card에서 호출됨
 
-  /* ============================================================
+     서버 PATCH 성공 후
+     해당 transactionId를 화면에서 제거
+  ========================================================== */
+
+  const handleConfirm =
+    (transactionId: number) => {
+
+      setAbnormalSpending(
+        (prev) =>
+          prev.filter(
+            (item) =>
+              item.transactionId !==
+              transactionId
+          )
+      );
+    };
+
+  /* ==========================================================
      이상 지출 개수
-  ============================================================ */
+  ========================================================== */
 
   const abnormalCount =
     abnormalSpending.length;
 
+  /* ==========================================================
+     Render
+  ========================================================== */
+
   return (
     <MainLayout activeMenu="이상 지출">
 
-      <div className="w-full px-8 py-8 lg:px-12">
+      <div
+        className="
+          w-full
+          px-8
+          py-8
+          lg:px-12
+        "
+      >
 
-        {/* ======================================================
+        {/* ====================================================
             Header
-        ====================================================== */}
+        ==================================================== */}
 
         <header className="mb-7">
 
@@ -172,27 +200,31 @@ export default function AbnormalSpendingPage() {
 
         </header>
 
-        {/* ======================================================
+        {/* ====================================================
             Content
-        ====================================================== */}
+        ==================================================== */}
 
         <div className="mt-6 space-y-6">
 
-          {/* ====================================================
+          {/* ==================================================
               Warning Banner
-          ==================================================== */}
+          ================================================== */}
 
-          {!loading && !error && (
-            <AbnormalWarningBanner
-              count={abnormalCount}
-            />
-          )}
+          {!loading &&
+            !error && (
 
-          {/* ====================================================
+              <AbnormalWarningBanner
+                count={abnormalCount}
+              />
+
+            )}
+
+          {/* ==================================================
               Loading
-          ==================================================== */}
+          ================================================== */}
 
           {loading && (
+
             <div
               className="
                 flex
@@ -227,51 +259,55 @@ export default function AbnormalSpendingPage() {
               </div>
 
             </div>
+
           )}
 
-          {/* ====================================================
+          {/* ==================================================
               Error
-          ==================================================== */}
+          ================================================== */}
 
-          {!loading && error && (
-            <div
-              className="
-                flex
-                min-h-[250px]
-                items-center
-                justify-center
-                rounded-2xl
-                border
-                border-red-100
-                bg-white
-              "
-            >
+          {!loading &&
+            error && (
 
               <div
                 className="
                   flex
+                  min-h-[250px]
                   items-center
-                  gap-2
-                  text-red-500
+                  justify-center
+                  rounded-2xl
+                  border
+                  border-red-100
+                  bg-white
                 "
               >
 
-                <AlertCircle
-                  size={20}
-                />
+                <div
+                  className="
+                    flex
+                    items-center
+                    gap-2
+                    text-red-500
+                  "
+                >
 
-                <span>
-                  {error}
-                </span>
+                  <AlertCircle
+                    size={20}
+                  />
+
+                  <span>
+                    {error}
+                  </span>
+
+                </div>
 
               </div>
 
-            </div>
-          )}
+            )}
 
-          {/* ====================================================
+          {/* ==================================================
               Empty
-          ==================================================== */}
+          ================================================== */}
 
           {!loading &&
             !error &&
@@ -303,9 +339,11 @@ export default function AbnormalSpendingPage() {
                     bg-green-50
                   "
                 >
+
                   <span className="text-2xl">
                     ✓
                   </span>
+
                 </div>
 
                 <h2
@@ -330,11 +368,12 @@ export default function AbnormalSpendingPage() {
                 </p>
 
               </div>
+
             )}
 
-          {/* ====================================================
+          {/* ==================================================
               Abnormal Spending List
-          ==================================================== */}
+          ================================================== */}
 
           {!loading &&
             !error &&
@@ -344,19 +383,24 @@ export default function AbnormalSpendingPage() {
 
                 {abnormalSpending.map(
                   (item) => (
+
                     <AbnormalSpendingCard
                       key={
                         item.transactionId
                       }
+
                       item={item}
+
                       onConfirm={
-                        handleConfirmAbnormal
+                        handleConfirm
                       }
                     />
+
                   )
                 )}
 
               </div>
+
             )}
 
         </div>

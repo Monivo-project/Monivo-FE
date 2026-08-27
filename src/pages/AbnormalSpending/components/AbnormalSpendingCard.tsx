@@ -23,10 +23,7 @@ import api from "../../../api/api";
 type AbnormalSpendingCardProps = {
   item: AbnormalSpendingItem;
 
-  /*
-   * 이상 지출 확인 완료 후
-   * 부모 Page에서 해당 거래를 리스트에서 제거하기 위한 함수
-   */
+  // 확인 완료 후 부모에게 transactionId 전달
   onConfirm: (transactionId: number) => void;
 };
 
@@ -145,9 +142,6 @@ export default function AbnormalSpendingCard({
      Confirm Abnormal
 
      PATCH /api/abnormal/{transactionId}
-
-     API 성공 후
-     부모 Page의 리스트에서 해당 거래 제거
   ========================================================== */
 
   const handleConfirmAbnormal =
@@ -157,21 +151,26 @@ export default function AbnormalSpendingCard({
 
         setIsConfirming(true);
 
-        /*
-         * 백엔드에서
-         *
-         * transaction.isAbnormal = false
-         *
-         * 로 변경
-         */
+        /* ==============================================
+           서버에 이상 지출 확인 완료 요청
+        ============================================== */
+
         await api.patch(
           `/api/abnormal/${item.transactionId}`
         );
 
-        /*
-         * API 성공 후에만
-         * 부모 리스트에서 해당 거래 제거
-         */
+        /* ==============================================
+           API 성공 후 팝업
+        ============================================== */
+
+        alert(
+          "이상 지출 확인이 완료되었습니다."
+        );
+
+        /* ==============================================
+           부모 Page에서 리스트 제거
+        ============================================== */
+
         onConfirm(
           item.transactionId
         );
@@ -182,6 +181,10 @@ export default function AbnormalSpendingCard({
           "이상 지출 확인 처리 실패:",
           error
         );
+
+        /* ==============================================
+           API 실패 시 팝업
+        ============================================== */
 
         alert(
           "이상 지출 확인 처리에 실패했습니다."
@@ -301,11 +304,7 @@ export default function AbnormalSpendingCard({
                 text-red-500
               "
             >
-
-              <AlertCircle
-                size={22}
-              />
-
+              <AlertCircle size={22} />
             </div>
 
             {/* ==================================================
@@ -497,9 +496,7 @@ export default function AbnormalSpendingCard({
             "
           >
 
-            {/* ==================================================
-                Amount
-            ================================================== */}
+            {/* Amount */}
 
             <p
               className="
@@ -513,9 +510,7 @@ export default function AbnormalSpendingCard({
               {formatAmount(item.amount)}
             </p>
 
-            {/* ==================================================
-                Buttons
-            ================================================== */}
+            {/* Buttons */}
 
             <div
               className="
@@ -595,9 +590,7 @@ export default function AbnormalSpendingCard({
                     className="animate-spin"
                   />
                 ) : (
-                  <Check
-                    size={15}
-                  />
+                  <Check size={15} />
                 )}
 
                 {isConfirming
@@ -657,6 +650,7 @@ export default function AbnormalSpendingCard({
       ====================================================== */}
 
       {isSaving && (
+
         <div
           className="
             fixed
@@ -685,6 +679,7 @@ export default function AbnormalSpendingCard({
           카테고리 수정 중...
 
         </div>
+
       )}
 
       {/* ======================================================
@@ -692,6 +687,7 @@ export default function AbnormalSpendingCard({
       ====================================================== */}
 
       {isConfirming && (
+
         <div
           className="
             fixed
@@ -720,6 +716,7 @@ export default function AbnormalSpendingCard({
           이상 지출 확인 처리 중...
 
         </div>
+
       )}
 
     </>
@@ -730,7 +727,9 @@ export default function AbnormalSpendingCard({
    금액 포맷
 ============================================================ */
 
-function formatAmount(amount: number) {
+function formatAmount(
+  amount: number
+) {
   return `${amount.toLocaleString(
     "ko-KR"
   )}원`;
@@ -740,7 +739,9 @@ function formatAmount(amount: number) {
    날짜 포맷
 ============================================================ */
 
-function formatDate(date: string) {
+function formatDate(
+  date: string
+) {
 
   const parsedDate =
     new Date(date);
