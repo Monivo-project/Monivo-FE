@@ -12,10 +12,6 @@ import BudgetProgress from "../../Home/components/BudgetProgress";
 // Props
 // ============================================================
 
-interface ExpectedBudgetProps {
-    totalExpense: number;
-}
-
 
 // ============================================================
 // 예상 지출 API Response
@@ -74,9 +70,7 @@ const formatAmount = (amount: number) => {
 // Component
 // ============================================================
 
-export default function ExpectedBudget({
-    totalExpense,
-}: ExpectedBudgetProps) {
+export default function ExpectedBudget() {
 
     const [data, setData] =
         useState<ExpectedBudgetResponse["result"] | null>(null);
