@@ -55,7 +55,7 @@ export default function AbnormalSpendingPage() {
 
   /* ============================================================
      이상 지출 조회
-     
+
      GET /api/abnormal
   ============================================================ */
 
@@ -76,18 +76,7 @@ export default function AbnormalSpendingPage() {
             response.data
           );
 
-          /* ======================================================
-             Axios Response이므로
-
-             response.data.isSuccess
-             response.data.result
-             response.data.message
-
-             사용
-          ====================================================== */
-
           if (response.data.isSuccess) {
-
             console.log(
               "이상 지출 목록:",
               response.data.result
@@ -96,18 +85,14 @@ export default function AbnormalSpendingPage() {
             setAbnormalSpending(
               response.data.result ?? []
             );
-
           } else {
-
             setError(
               response.data.message ||
               "이상 지출 정보를 불러오지 못했습니다."
             );
-
           }
 
         } catch (error) {
-
           console.error(
             "이상 지출 조회 실패:",
             error
@@ -118,15 +103,32 @@ export default function AbnormalSpendingPage() {
           );
 
         } finally {
-
           setLoading(false);
-
         }
       };
 
     fetchAbnormalSpendings();
 
   }, []);
+
+  /* ============================================================
+     이상 지출 확인 완료
+     
+     자식 Card에서 확인 완료 후 호출
+     
+     해당 transactionId를 리스트에서 제거
+  ============================================================ */
+
+  const handleConfirmAbnormal = (
+    transactionId: number
+  ) => {
+    setAbnormalSpending((prev) =>
+      prev.filter(
+        (item) =>
+          item.transactionId !== transactionId
+      )
+    );
+  };
 
   /* ============================================================
      이상 지출 개수
@@ -347,6 +349,9 @@ export default function AbnormalSpendingPage() {
                         item.transactionId
                       }
                       item={item}
+                      onConfirm={
+                        handleConfirmAbnormal
+                      }
                     />
                   )
                 )}
