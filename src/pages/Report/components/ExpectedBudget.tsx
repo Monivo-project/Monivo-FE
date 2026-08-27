@@ -17,7 +17,6 @@ interface ExpectedBudgetProps {
 }
 
 
-
 // ============================================================
 // API Response Interface
 // ============================================================
@@ -37,6 +36,7 @@ interface ExpectedBudgetResponse {
     };
 }
 
+
 // ============================================================
 // 금액 포맷
 // ============================================================
@@ -44,6 +44,7 @@ interface ExpectedBudgetResponse {
 const formatAmount = (amount: number) => {
     return `₩${Number(amount ?? 0).toLocaleString("ko-KR")}`;
 };
+
 
 // ============================================================
 // Component
@@ -59,6 +60,7 @@ export default function ExpectedBudget({
     const [loading, setLoading] =
         useState(true);
 
+
     // ============================================================
     // 현재 연 / 월
     // ============================================================
@@ -67,6 +69,7 @@ export default function ExpectedBudget({
 
     const year = today.getFullYear();
     const month = today.getMonth() + 1;
+
 
     // ============================================================
     // API 조회
@@ -125,6 +128,7 @@ export default function ExpectedBudget({
 
     }, [year, month]);
 
+
     // ============================================================
     // Loading
     // ============================================================
@@ -140,6 +144,7 @@ export default function ExpectedBudget({
         );
 
     }
+
 
     // ============================================================
     // 데이터 없음
@@ -157,20 +162,21 @@ export default function ExpectedBudget({
 
     }
 
+
     // ============================================================
-    // ⭐ 현재 실제 지출
+    // ⭐ API에서 받은 현재 실제 지출
     //
-    // API의 currentAmount가 아니라
-    // ReportPage에서 전달받은 summary.totalExpense 사용
+    // response.result.currentAmount 사용
     // ============================================================
 
     const currentAmount =
-        Number(totalExpense) || 0;
+        Number(data.currentAmount) || 0;
+
 
     // ============================================================
     // ⭐ 남은 예상 지출
     //
-    // 예상 지출 - 실제 지출
+    // 예상 지출 - 현재 실제 지출
     // ============================================================
 
     const remainingExpectedAmount =
@@ -179,6 +185,7 @@ export default function ExpectedBudget({
             currentAmount,
             0
         );
+
 
     // ============================================================
     // Render
@@ -216,12 +223,15 @@ export default function ExpectedBudget({
                     </div>
 
                     <p className="text-[22px] font-bold text-[#172033]">
+
                         {formatAmount(
                             data.expectedAmount
                         )}
+
                     </p>
 
                 </div>
+
 
                 {/* 권장 예산 */}
 
@@ -245,18 +255,21 @@ export default function ExpectedBudget({
                     </div>
 
                     <p className="text-[22px] font-bold text-[#172033]">
+
                         {formatAmount(
                             data.recommendedBudget
                         )}
+
                     </p>
 
                 </div>
 
             </div>
 
+
             {/* ======================================================
                 ⭐ 예상 지출 사용률
-                BudgetProgress 컴포넌트 사용
+                API currentAmount 사용
             ====================================================== */}
 
             <BudgetProgress
@@ -265,6 +278,7 @@ export default function ExpectedBudget({
                     Number(data.expectedAmount) || 0
                 }
             />
+
 
             {/* ======================================================
                 남은 예상 지출
@@ -279,9 +293,11 @@ export default function ExpectedBudget({
                     </p>
 
                     <p className="mt-1 text-[18px] font-bold text-[#172033]">
+
                         {formatAmount(
                             remainingExpectedAmount
                         )}
+
                     </p>
 
                 </div>
@@ -296,6 +312,7 @@ export default function ExpectedBudget({
                 </div>
 
             </div>
+
 
             {/* ======================================================
                 AI 예측 정보
