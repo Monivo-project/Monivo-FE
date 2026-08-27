@@ -35,7 +35,6 @@ export interface HomeSummary {
   abnormalCount: number;
   uncategorizedCount: number;
 
-  // 지난 달 대비 지출 변화 금액
   changeFromLastMonth: number;
 }
 
@@ -65,19 +64,26 @@ export default function HomePage() {
 
   /**
    * =========================
+   * 현재 연 / 월
+   * =========================
+   */
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+
+  /**
+   * =========================
    * State
    * =========================
    */
 
-  // 홈 상단 요약
   const [summary, setSummary] =
     useState<HomeSummary | null>(null);
 
-  // AI 예상 지출
   const [expectedBudget, setExpectedBudget] =
     useState<ExpectedBudget | null>(null);
 
-  // 로딩
   const [loading, setLoading] =
     useState(true);
 
@@ -88,13 +94,7 @@ export default function HomePage() {
    */
   useEffect(() => {
     const fetchHomeData = async () => {
-      const today = new Date();
-
-      const year =
-        today.getFullYear();
-
-      const month =
-        today.getMonth() + 1;
+      setLoading(true);
 
       try {
         /**
@@ -131,11 +131,6 @@ export default function HomePage() {
          * =========================
          * 2. AI 예상 지출
          * =========================
-         *
-         * GET
-         * /api/home/expected-budget
-         *
-         * ?year=2026&month=8
          */
         const expectedBudgetResponse =
           await api.get<{
@@ -161,6 +156,7 @@ export default function HomePage() {
         setExpectedBudget(
           expectedBudgetResponse.data.result
         );
+
       } catch (error: any) {
         console.error(
           "홈 데이터 조회 실패:",
@@ -182,7 +178,7 @@ export default function HomePage() {
     };
 
     fetchHomeData();
-  }, []);
+  }, [year, month]);
 
   return (
     <MainLayout activeMenu="홈">
@@ -218,7 +214,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* 내보내기 */}
           <button
             className="
               flex
@@ -245,6 +240,7 @@ export default function HomePage() {
           </button>
         </header>
 
+
         {/* =========================
             Summary Cards
         ========================= */}
@@ -259,9 +255,7 @@ export default function HomePage() {
           "
         >
 
-          {/* =========================
-              이번 달 지출
-          ========================= */}
+          {/* 이번 달 지출 */}
           <SummaryCard
             icon={<Wallet size={22} />}
             label="이번 달 지출"
@@ -302,9 +296,8 @@ export default function HomePage() {
             tone="blue"
           />
 
-          {/* =========================
-              예상 지출
-          ========================= */}
+
+          {/* 예상 지출 */}
           <SummaryCard
             icon={
               <CircleDollarSign size={22} />
@@ -332,9 +325,8 @@ export default function HomePage() {
             tone="green"
           />
 
-          {/* =========================
-              이상 지출
-          ========================= */}
+
+          {/* 이상 지출 */}
           <SummaryCard
             icon={
               <XCircle size={22} />
@@ -352,9 +344,8 @@ export default function HomePage() {
             }
           />
 
-          {/* =========================
-              미분류 항목
-          ========================= */}
+
+          {/* 미분류 */}
           <SummaryCard
             icon={
               <FileQuestion size={22} />
@@ -374,6 +365,7 @@ export default function HomePage() {
 
         </section>
 
+
         {/* =========================
             Budget
         ========================= */}
@@ -388,6 +380,7 @@ export default function HomePage() {
           />
         </div>
 
+
         {/* =========================
             Charts
         ========================= */}
@@ -400,10 +393,17 @@ export default function HomePage() {
             xl:grid-cols-[1.5fr_1fr]
           "
         >
+
           <WeeklySpending />
 
-          <CategorySpending />
+          {/* API 연동된 카테고리별 지출 */}
+          <CategorySpending
+            year={year}
+            month={month}
+          />
+
         </section>
+
 
         {/* =========================
             Recent Transactions
