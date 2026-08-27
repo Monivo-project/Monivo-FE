@@ -112,19 +112,6 @@ const CATEGORY_ICON_COLORS: Record<string, string> = {
 };
 
 // ============================================================
-// 분류 방식 필터
-// ============================================================
-
-const CLASSIFICATION_TYPES = [
-  "전체",
-  "분류",
-  "미분류",
-] as const;
-
-type ClassificationFilter =
-  (typeof CLASSIFICATION_TYPES)[number];
-
-// ============================================================
 // 백엔드 classificationType
 // ============================================================
 
@@ -239,16 +226,6 @@ export default function ConsumptionPage() {
     useState(false);
 
   // ============================================================
-  // 분류 방식 필터
-  // ============================================================
-
-  const [selectedClassification, setSelectedClassification] =
-    useState<ClassificationFilter>("전체");
-
-  const [isClassificationOpen, setIsClassificationOpen] =
-    useState(false);
-
-  // ============================================================
   // 현재 선택된 월
   // ============================================================
 
@@ -278,7 +255,7 @@ export default function ConsumptionPage() {
   // Home Summary
   //
   // 상단 SummaryCard는 이 값을 사용한다.
-  // 검색 / 카테고리 / 분류 필터와 관계없이
+  // 검색 / 카테고리 필터와 관계없이
   // 해당 월 전체 기준이다.
   // ============================================================
 
@@ -319,8 +296,7 @@ export default function ConsumptionPage() {
   const [modalCategoryId, setModalCategoryId] =
     useState<number | null>(null);
 
-  const [isModalOpen, setIsModalOpen] =
-    useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // ============================================================
   // 카테고리 수정 저장 중
@@ -341,8 +317,6 @@ export default function ConsumptionPage() {
   // Home Summary 조회
   //
   // /api/home
-  //
-  // 홈 화면과 동일한 값을 사용하기 위한 API
   // ============================================================
 
   useEffect(() => {
@@ -406,7 +380,7 @@ export default function ConsumptionPage() {
   //
   // /api/consumption/search
   //
-  // 검색 / 카테고리 / 분류 필터를 적용하지 않고
+  // 검색 / 카테고리 필터를 적용하지 않고
   // 해당 월 전체 거래 건수만 조회한다.
   // ============================================================
 
@@ -428,7 +402,6 @@ export default function ConsumptionPage() {
                 // 필터 없음
                 merchant: null,
                 categoryId: null,
-                classificationType: null,
 
                 // 첫 페이지
                 page: 0,
@@ -483,8 +456,9 @@ export default function ConsumptionPage() {
   // ============================================================
   // Consumption 조회
   //
-  // 실제 거래 목록은 기존처럼
-  // 검색 / 카테고리 / 분류 필터를 적용한다.
+  // 검색 / 카테고리 필터를 적용한다.
+  //
+  // 분류 방식 필터는 제거됨.
   // ============================================================
 
   useEffect(() => {
@@ -501,29 +475,6 @@ export default function ConsumptionPage() {
         const categoryId =
           selectedCategoryInfo?.id ?? null;
 
-        // ======================================================
-        // classificationType 변환
-        // ======================================================
-
-        let classificationType:
-          | ClassificationType
-          | null = null;
-
-        if (
-          selectedClassification ===
-          "미분류"
-        ) {
-          classificationType =
-            "UNCLASSIFIED";
-        }
-
-        /*
-         * "분류"는 UNCLASSIFIED가 아닌 모든 분류 방식
-         *
-         * 백엔드에서 classificationType을 하나만 받는 구조라면
-         * "분류"는 null로 요청해야 한다.
-         */
-
         const response =
           await api.get<
             ApiResponse<ConsumptionResponse>
@@ -538,8 +489,6 @@ export default function ConsumptionPage() {
                   search.trim() || null,
 
                 categoryId,
-
-                classificationType,
 
                 page: currentPage,
 
@@ -598,7 +547,6 @@ export default function ConsumptionPage() {
     month,
     search,
     selectedCategory,
-    selectedClassification,
     currentPage,
   ]);
 
@@ -637,13 +585,7 @@ export default function ConsumptionPage() {
       "전체 카테고리"
     );
 
-    setSelectedClassification(
-      "전체"
-    );
-
     setIsCategoryOpen(false);
-
-    setIsClassificationOpen(false);
   };
 
   // ============================================================
@@ -694,13 +636,7 @@ export default function ConsumptionPage() {
       "전체 카테고리"
     );
 
-    setSelectedClassification(
-      "전체"
-    );
-
     setIsCategoryOpen(false);
-
-    setIsClassificationOpen(false);
   };
 
   // ============================================================
@@ -735,9 +671,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 전체 거래 건수
-  //
-  // /api/consumption/search를 필터 없이
-  // 별도로 조회한 값
   // ============================================================
 
   const transactionCount =
@@ -745,8 +678,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 총 지출
-  //
-  // /api/home의 totalExpense 사용
   // ============================================================
 
   const totalExpense =
@@ -754,8 +685,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 이상 지출 건수
-  //
-  // /api/home의 abnormalCount 사용
   // ============================================================
 
   const abnormalCount =
@@ -763,8 +692,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 미분류 건수
-  //
-  // /api/home의 uncategorizedCount 사용
   // ============================================================
 
   const uncategorizedCount =
@@ -791,6 +718,8 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 분류 방식 표시
+  //
+  // 필터는 제거했지만 거래별 분류 방식 표시는 유지한다.
   // ============================================================
 
   const getClassificationLabel = (
@@ -837,30 +766,12 @@ export default function ConsumptionPage() {
   };
 
   // ============================================================
-  // 분류 방식 선택
-  // ============================================================
-
-  const handleClassificationSelect = (
-    classification: ClassificationFilter
-  ) => {
-    setSelectedClassification(
-      classification
-    );
-
-    setCurrentPage(0);
-
-    setIsClassificationOpen(false);
-  };
-
-  // ============================================================
   // 활성 필터 여부
   // ============================================================
 
   const hasActiveFilter =
     selectedCategory !==
     "전체 카테고리" ||
-    selectedClassification !==
-    "전체" ||
     search.trim().length > 0;
 
   // ============================================================
@@ -872,10 +783,6 @@ export default function ConsumptionPage() {
 
     setSelectedCategory(
       "전체 카테고리"
-    );
-
-    setSelectedClassification(
-      "전체"
     );
 
     setCurrentPage(0);
@@ -997,14 +904,7 @@ export default function ConsumptionPage() {
       );
 
       // ========================================================
-      // 미분류 카운트 감소
-      //
-      // 주의:
-      // SummaryCard는 /api/home의 값을 사용하므로
-      // 화면에서 직접 감소시키지 않는다.
-      //
-      // 카테고리 수정 후 정확한 홈 통계를 반영하려면
-      // /api/home을 다시 호출해야 한다.
+      // Consumption Summary 수정
       // ========================================================
 
       setConsumptionSummary(
@@ -1055,9 +955,7 @@ export default function ConsumptionPage() {
       );
 
       // ========================================================
-      // 홈 Summary도 다시 조회
-      //
-      // 카테고리 변경으로 미분류 건수가 변경될 수 있기 때문
+      // 홈 Summary 다시 조회
       // ========================================================
 
       try {
@@ -1342,9 +1240,7 @@ export default function ConsumptionPage() {
             xl:grid-cols-4
           "
         >
-          {/* ==================================================
-              총 지출
-          ================================================== */}
+          {/* 총 지출 */}
 
           <SummaryCard
             icon={
@@ -1360,9 +1256,7 @@ export default function ConsumptionPage() {
             tone="blue"
           />
 
-          {/* ==================================================
-              거래 건수
-          ================================================== */}
+          {/* 거래 건수 */}
 
           <SummaryCard
             icon={
@@ -1378,9 +1272,7 @@ export default function ConsumptionPage() {
             tone="green"
           />
 
-          {/* ==================================================
-              이상 지출
-          ================================================== */}
+          {/* 이상 지출 */}
 
           <SummaryCard
             icon={
@@ -1396,9 +1288,7 @@ export default function ConsumptionPage() {
             tone="red"
           />
 
-          {/* ==================================================
-              미분류
-          ================================================== */}
+          {/* 미분류 */}
 
           <SummaryCard
             icon={
@@ -1482,7 +1372,9 @@ export default function ConsumptionPage() {
             />
           </div>
 
-          {/* 카테고리 필터 */}
+          {/* ==================================================
+              카테고리 필터
+          ================================================== */}
 
           <div className="relative">
             <button
@@ -1490,10 +1382,6 @@ export default function ConsumptionPage() {
               onClick={() => {
                 setIsCategoryOpen(
                   (prev) => !prev
-                );
-
-                setIsClassificationOpen(
-                  false
                 );
               }}
               className="
@@ -1546,6 +1434,8 @@ export default function ConsumptionPage() {
                   shadow-[0_8px_24px_rgba(0,0,0,0.08)]
                 "
               >
+                {/* 전체 카테고리 */}
+
                 <button
                   type="button"
                   onClick={() =>
@@ -1571,6 +1461,8 @@ export default function ConsumptionPage() {
                 >
                   전체 카테고리
                 </button>
+
+                {/* 카테고리 */}
 
                 {CATEGORIES.map(
                   (category) => (
@@ -1605,108 +1497,6 @@ export default function ConsumptionPage() {
               </div>
             )}
           </div>
-
-          {/* 분류 방식 */}
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => {
-                setIsClassificationOpen(
-                  (prev) => !prev
-                );
-
-                setIsCategoryOpen(false);
-              }}
-              className="
-                flex h-11
-                min-w-[160px]
-                items-center
-                justify-between
-                gap-3
-                rounded-xl
-                border border-[#E5EAF0]
-                bg-white
-                px-4
-                text-sm
-                font-medium
-                text-[#4B5563]
-                transition-colors
-                hover:bg-[#F8FAFC]
-              "
-            >
-              <span>
-                {selectedClassification ===
-                  "전체"
-                  ? "분류 방식 전체"
-                  : selectedClassification}
-              </span>
-
-              <ChevronDown
-                size={17}
-                className={`
-                  transition-transform
-                  ${isClassificationOpen
-                    ? "rotate-180"
-                    : ""
-                  }
-                `}
-              />
-            </button>
-
-            {isClassificationOpen && (
-              <div
-                className="
-                  absolute
-                  right-0
-                  top-[calc(100%+8px)]
-                  z-50
-                  w-[160px]
-                  rounded-xl
-                  border border-[#E5EAF0]
-                  bg-white
-                  py-1
-                  shadow-[0_8px_24px_rgba(0,0,0,0.08)]
-                "
-              >
-                {CLASSIFICATION_TYPES.map(
-                  (classification) => (
-                    <button
-                      key={
-                        classification
-                      }
-                      type="button"
-                      onClick={() =>
-                        handleClassificationSelect(
-                          classification
-                        )
-                      }
-                      className={`
-                        w-full
-                        px-4
-                        py-2.5
-                        text-left
-                        text-sm
-                        transition-colors
-                        hover:bg-[#F8FAFC]
-
-                        ${selectedClassification ===
-                          classification
-                          ? "bg-[#F5F8FF] font-semibold text-[#2161F5]"
-                          : "text-[#4B5563]"
-                        }
-                      `}
-                    >
-                      {classification ===
-                        "전체"
-                        ? "분류 방식 전체"
-                        : classification}
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-          </div>
         </section>
 
         {/* ====================================================
@@ -1725,6 +1515,8 @@ export default function ConsumptionPage() {
               text-[#6B7280]
             "
           >
+            {/* 검색 필터 */}
+
             {search && (
               <span
                 className="
@@ -1739,6 +1531,8 @@ export default function ConsumptionPage() {
                 검색: {search}
               </span>
             )}
+
+            {/* 카테고리 필터 */}
 
             {selectedCategory !==
               "전체 카테고리" && (
@@ -1757,22 +1551,7 @@ export default function ConsumptionPage() {
                 </span>
               )}
 
-            {selectedClassification !==
-              "전체" && (
-                <span
-                  className="
-                  rounded-lg
-                  bg-[#F5F8FF]
-                  px-3
-                  py-1.5
-                  font-semibold
-                  text-[#2161F5]
-                "
-                >
-                  분류 방식:{" "}
-                  {selectedClassification}
-                </span>
-              )}
+            {/* 전체 초기화 */}
 
             <button
               type="button"
