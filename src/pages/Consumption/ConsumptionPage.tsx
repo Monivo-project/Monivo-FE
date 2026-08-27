@@ -184,6 +184,29 @@ interface ConsumptionResponse {
 }
 
 // ============================================================
+// Home Summary
+// ============================================================
+
+interface HomeSummary {
+  year: number;
+  month: number;
+
+  totalExpense: number;
+
+  budget: number;
+
+  remainingBudget: number;
+
+  budgetUsageRate: number;
+
+  abnormalCount: number;
+
+  uncategorizedCount: number;
+
+  changeFromLastMonth: number;
+}
+
+// ============================================================
 // API 공통 Response
 // ============================================================
 
@@ -252,6 +275,34 @@ export default function ConsumptionPage() {
     useState(false);
 
   // ============================================================
+  // Home Summary
+  //
+  // 상단 SummaryCard는 이 값을 사용한다.
+  // 검색 / 카테고리 / 분류 필터와 관계없이
+  // 해당 월 전체 기준이다.
+  // ============================================================
+
+  const [homeSummary, setHomeSummary] =
+    useState<HomeSummary | null>(null);
+
+  const [homeSummaryLoading, setHomeSummaryLoading] =
+    useState(false);
+
+  // ============================================================
+  // 월 전체 거래 건수
+  //
+  // 필터와 관계없이 해당 월 전체 거래 건수
+  // ============================================================
+
+  const [totalTransactionCount, setTotalTransactionCount] =
+    useState(0);
+
+  const [
+    totalTransactionCountLoading,
+    setTotalTransactionCountLoading,
+  ] = useState(false);
+
+  // ============================================================
   // 거래 목록
   // ============================================================
 
@@ -287,7 +338,153 @@ export default function ConsumptionPage() {
   const month = currentDate.getMonth() + 1;
 
   // ============================================================
+  // Home Summary 조회
+  //
+  // /api/home
+  //
+  // 홈 화면과 동일한 값을 사용하기 위한 API
+  // ============================================================
+
+  useEffect(() => {
+    const fetchHomeSummary = async () => {
+      setHomeSummaryLoading(true);
+
+      try {
+        const response =
+          await api.get<ApiResponse<HomeSummary>>(
+            "/api/home",
+            {
+              params: {
+                year,
+                month,
+              },
+            }
+          );
+
+        console.log(
+          `${year}년 ${month}월 홈 요약:`,
+          response.data
+        );
+
+        if (!response.data.isSuccess) {
+          throw new Error(
+            response.data.message ||
+            "홈 요약 조회에 실패했습니다."
+          );
+        }
+
+        setHomeSummary(
+          response.data.result
+        );
+      } catch (error: any) {
+        console.error(
+          "홈 요약 조회 실패:",
+          error
+        );
+
+        console.error(
+          "Status:",
+          error.response?.status
+        );
+
+        console.error(
+          "Response:",
+          error.response?.data
+        );
+
+        setHomeSummary(null);
+      } finally {
+        setHomeSummaryLoading(false);
+      }
+    };
+
+    fetchHomeSummary();
+  }, [year, month]);
+
+  // ============================================================
+  // 월 전체 거래 건수 조회
+  //
+  // /api/consumption/search
+  //
+  // 검색 / 카테고리 / 분류 필터를 적용하지 않고
+  // 해당 월 전체 거래 건수만 조회한다.
+  // ============================================================
+
+  useEffect(() => {
+    const fetchTotalTransactionCount = async () => {
+      setTotalTransactionCountLoading(true);
+
+      try {
+        const response =
+          await api.get<
+            ApiResponse<ConsumptionResponse>
+          >(
+            "/api/consumption/search",
+            {
+              params: {
+                year,
+                month,
+
+                // 필터 없음
+                merchant: null,
+                categoryId: null,
+                classificationType: null,
+
+                // 첫 페이지
+                page: 0,
+
+                // 전체 건수만 필요하므로
+                // 1건만 조회
+                size: 1,
+              },
+            }
+          );
+
+        console.log(
+          `${year}년 ${month}월 전체 거래 건수:`,
+          response.data
+        );
+
+        if (!response.data.isSuccess) {
+          throw new Error(
+            response.data.message ||
+            "전체 거래 건수 조회에 실패했습니다."
+          );
+        }
+
+        setTotalTransactionCount(
+          response.data.result.totalElements ?? 0
+        );
+      } catch (error: any) {
+        console.error(
+          "전체 거래 건수 조회 실패:",
+          error
+        );
+
+        console.error(
+          "Status:",
+          error.response?.status
+        );
+
+        console.error(
+          "Response:",
+          error.response?.data
+        );
+
+        setTotalTransactionCount(0);
+      } finally {
+        setTotalTransactionCountLoading(false);
+      }
+    };
+
+    fetchTotalTransactionCount();
+  }, [year, month]);
+
+  // ============================================================
   // Consumption 조회
+  //
+  // 실제 거래 목록은 기존처럼
+  // 검색 / 카테고리 / 분류 필터를 적용한다.
   // ============================================================
 
   useEffect(() => {
@@ -313,20 +510,18 @@ export default function ConsumptionPage() {
           | null = null;
 
         if (
-          selectedClassification === "미분류"
+          selectedClassification ===
+          "미분류"
         ) {
-          classificationType = "UNCLASSIFIED";
+          classificationType =
+            "UNCLASSIFIED";
         }
 
         /*
          * "분류"는 UNCLASSIFIED가 아닌 모든 분류 방식
-         * (KEYWORD, USER, LLM, MERCHANT 등)를 의미한다.
          *
          * 백엔드에서 classificationType을 하나만 받는 구조라면
          * "분류"는 null로 요청해야 한다.
-         *
-         * 실제 "분류만" 필터링하려면 백엔드에서
-         * isClassified 같은 별도 조건을 지원하는 것이 가장 정확하다.
          */
 
         const response =
@@ -347,6 +542,7 @@ export default function ConsumptionPage() {
                 classificationType,
 
                 page: currentPage,
+
                 size: pageSize,
               },
             }
@@ -389,6 +585,7 @@ export default function ConsumptionPage() {
         );
 
         setConsumptionSummary(null);
+
         setTransactions([]);
       } finally {
         setTransactionLoading(false);
@@ -413,6 +610,7 @@ export default function ConsumptionPage() {
     value: string
   ) => {
     setSearch(value);
+
     setCurrentPage(0);
   };
 
@@ -432,6 +630,7 @@ export default function ConsumptionPage() {
     });
 
     setCurrentPage(0);
+
     setSearch("");
 
     setSelectedCategory(
@@ -443,6 +642,7 @@ export default function ConsumptionPage() {
     );
 
     setIsCategoryOpen(false);
+
     setIsClassificationOpen(false);
   };
 
@@ -487,6 +687,7 @@ export default function ConsumptionPage() {
     });
 
     setCurrentPage(0);
+
     setSearch("");
 
     setSelectedCategory(
@@ -498,6 +699,7 @@ export default function ConsumptionPage() {
     );
 
     setIsCategoryOpen(false);
+
     setIsClassificationOpen(false);
   };
 
@@ -528,56 +730,45 @@ export default function ConsumptionPage() {
   // 현재 페이지 거래
   // ============================================================
 
-  /*
-   * 백엔드가 페이징을 처리하므로
-   * transactions를 다시 필터링해서 페이지 건수를
-   * 변경하지 않는다.
-   *
-   * 특히 "분류"를 프론트에서 filter하면
-   * totalPages / totalElements와 실제 목록이
-   * 서로 맞지 않을 수 있다.
-   */
-
   const filteredTransactions =
     transactions;
 
   // ============================================================
   // 전체 거래 건수
+  //
+  // /api/consumption/search를 필터 없이
+  // 별도로 조회한 값
   // ============================================================
 
   const transactionCount =
-    consumptionSummary?.totalElements ?? 0;
+    totalTransactionCount;
 
   // ============================================================
   // 총 지출
+  //
+  // /api/home의 totalExpense 사용
   // ============================================================
 
   const totalExpense =
-    consumptionSummary?.totalAmount ?? 0;
+    homeSummary?.totalExpense ?? 0;
 
   // ============================================================
   // 이상 지출 건수
+  //
+  // /api/home의 abnormalCount 사용
   // ============================================================
 
   const abnormalCount =
-    consumptionSummary?.abnormalCount ??
-    transactions.filter(
-      (transaction) =>
-        transaction.isAbnormal
-    ).length;
+    homeSummary?.abnormalCount ?? 0;
 
   // ============================================================
   // 미분류 건수
+  //
+  // /api/home의 uncategorizedCount 사용
   // ============================================================
 
   const uncategorizedCount =
-    consumptionSummary?.uncategorizedCount ??
-    transactions.filter(
-      (transaction) =>
-        isUnclassified(
-          transaction.classificationType
-        )
-    ).length;
+    homeSummary?.uncategorizedCount ?? 0;
 
   // ============================================================
   // 날짜 포맷
@@ -639,7 +830,9 @@ export default function ConsumptionPage() {
     category: string
   ) => {
     setSelectedCategory(category);
+
     setCurrentPage(0);
+
     setIsCategoryOpen(false);
   };
 
@@ -655,6 +848,7 @@ export default function ConsumptionPage() {
     );
 
     setCurrentPage(0);
+
     setIsClassificationOpen(false);
   };
 
@@ -741,6 +935,7 @@ export default function ConsumptionPage() {
         {
           transactionId:
             selectedTransaction.transactionId,
+
           categoryId:
             modalCategoryId,
         }
@@ -803,6 +998,13 @@ export default function ConsumptionPage() {
 
       // ========================================================
       // 미분류 카운트 감소
+      //
+      // 주의:
+      // SummaryCard는 /api/home의 값을 사용하므로
+      // 화면에서 직접 감소시키지 않는다.
+      //
+      // 카테고리 수정 후 정확한 홈 통계를 반영하려면
+      // /api/home을 다시 호출해야 한다.
       // ========================================================
 
       setConsumptionSummary(
@@ -851,6 +1053,40 @@ export default function ConsumptionPage() {
           };
         }
       );
+
+      // ========================================================
+      // 홈 Summary도 다시 조회
+      //
+      // 카테고리 변경으로 미분류 건수가 변경될 수 있기 때문
+      // ========================================================
+
+      try {
+        const homeResponse =
+          await api.get<
+            ApiResponse<HomeSummary>
+          >(
+            "/api/home",
+            {
+              params: {
+                year,
+                month,
+              },
+            }
+          );
+
+        if (
+          homeResponse.data.isSuccess
+        ) {
+          setHomeSummary(
+            homeResponse.data.result
+          );
+        }
+      } catch (homeError) {
+        console.error(
+          "홈 요약 갱신 실패:",
+          homeError
+        );
+      }
 
       // ========================================================
       // 모달 닫기
@@ -1064,7 +1300,8 @@ export default function ConsumptionPage() {
                 text-[#A1AAB8]
               "
             >
-              {transactionLoading
+              {transactionLoading ||
+                totalTransactionCountLoading
                 ? "조회 중..."
                 : `${transactionCount.toLocaleString()}건`}
             </p>
@@ -1105,7 +1342,9 @@ export default function ConsumptionPage() {
             xl:grid-cols-4
           "
         >
-          {/* 총 지출 */}
+          {/* ==================================================
+              총 지출
+          ================================================== */}
 
           <SummaryCard
             icon={
@@ -1113,19 +1352,17 @@ export default function ConsumptionPage() {
             }
             label="이 달 총 지출"
             value={
-              transactionLoading
+              homeSummaryLoading
                 ? "조회 중..."
                 : `₩${totalExpense.toLocaleString()}`
             }
-            subText={
-              hasActiveFilter
-                ? "현재 필터 결과"
-                : "전체 거래"
-            }
+            subText="전체 거래 기준"
             tone="blue"
           />
 
-          {/* 거래 건수 */}
+          {/* ==================================================
+              거래 건수
+          ================================================== */}
 
           <SummaryCard
             icon={
@@ -1133,19 +1370,17 @@ export default function ConsumptionPage() {
             }
             label="거래 건수"
             value={
-              transactionLoading
+              totalTransactionCountLoading
                 ? "조회 중..."
                 : `${transactionCount.toLocaleString()}건`
             }
-            subText={
-              hasActiveFilter
-                ? "현재 필터 결과"
-                : "전체 거래"
-            }
+            subText="전체 거래 기준"
             tone="green"
           />
 
-          {/* 이상 지출 */}
+          {/* ==================================================
+              이상 지출
+          ================================================== */}
 
           <SummaryCard
             icon={
@@ -1153,15 +1388,17 @@ export default function ConsumptionPage() {
             }
             label="이상 지출"
             value={
-              transactionLoading
+              homeSummaryLoading
                 ? "조회 중..."
                 : `${abnormalCount.toLocaleString()}건`
             }
-            subText="이상 지출 확인"
+            subText="전체 거래 기준"
             tone="red"
           />
 
-          {/* 미분류 */}
+          {/* ==================================================
+              미분류
+          ================================================== */}
 
           <SummaryCard
             icon={
@@ -1169,11 +1406,11 @@ export default function ConsumptionPage() {
             }
             label="미분류"
             value={
-              transactionLoading
+              homeSummaryLoading
                 ? "조회 중..."
                 : `${uncategorizedCount.toLocaleString()}건`
             }
-            subText="분류 필요"
+            subText="전체 거래 기준"
             tone="yellow"
           />
         </section>
