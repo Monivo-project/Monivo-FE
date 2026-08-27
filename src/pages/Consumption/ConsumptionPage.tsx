@@ -12,7 +12,6 @@ import {
   Landmark,
   Package,
   PawPrint,
-  Plus,
   Search,
   ShoppingCart,
   Utensils,
@@ -175,10 +174,7 @@ interface ConsumptionResponse {
 
   transactions: ConsumptionTransaction[];
 
-  // ==========================================================
   // 페이징
-  // ==========================================================
-
   page: number;
   size: number;
   totalPages: number;
@@ -243,7 +239,7 @@ export default function ConsumptionPage() {
 
   const [currentPage, setCurrentPage] = useState(0);
 
-  const [pageSize] = useState(10);
+  const pageSize = 10;
 
   // ============================================================
   // Consumption Summary
@@ -322,6 +318,17 @@ export default function ConsumptionPage() {
           classificationType = "UNCLASSIFIED";
         }
 
+        /*
+         * "분류"는 UNCLASSIFIED가 아닌 모든 분류 방식
+         * (KEYWORD, USER, LLM, MERCHANT 등)를 의미한다.
+         *
+         * 백엔드에서 classificationType을 하나만 받는 구조라면
+         * "분류"는 null로 요청해야 한다.
+         *
+         * 실제 "분류만" 필터링하려면 백엔드에서
+         * isClassified 같은 별도 조건을 지원하는 것이 가장 정확하다.
+         */
+
         const response =
           await api.get<
             ApiResponse<ConsumptionResponse>
@@ -332,19 +339,12 @@ export default function ConsumptionPage() {
                 year,
                 month,
 
-                // 검색어
                 merchant:
                   search.trim() || null,
 
-                // 카테고리
                 categoryId,
 
-                // 분류 방식
                 classificationType,
-
-                // ==================================================
-                // 페이징
-                // ==================================================
 
                 page: currentPage,
                 size: pageSize,
@@ -356,6 +356,13 @@ export default function ConsumptionPage() {
           `${year}년 ${month}월 소비 검색:`,
           response.data
         );
+
+        if (!response.data.isSuccess) {
+          throw new Error(
+            response.data.message ||
+            "소비 내역 조회에 실패했습니다."
+          );
+        }
 
         const result =
           response.data.result;
@@ -396,7 +403,6 @@ export default function ConsumptionPage() {
     selectedCategory,
     selectedClassification,
     currentPage,
-    pageSize,
   ]);
 
   // ============================================================
@@ -407,8 +413,6 @@ export default function ConsumptionPage() {
     value: string
   ) => {
     setSearch(value);
-
-    // 검색 조건이 변경되면 첫 페이지로 이동
     setCurrentPage(0);
   };
 
@@ -427,9 +431,7 @@ export default function ConsumptionPage() {
       return date;
     });
 
-    // 월 변경 → 첫 페이지
     setCurrentPage(0);
-
     setSearch("");
 
     setSelectedCategory(
@@ -441,7 +443,6 @@ export default function ConsumptionPage() {
     );
 
     setIsCategoryOpen(false);
-
     setIsClassificationOpen(false);
   };
 
@@ -485,9 +486,7 @@ export default function ConsumptionPage() {
       return nextDate;
     });
 
-    // 월 변경 → 첫 페이지
     setCurrentPage(0);
-
     setSearch("");
 
     setSelectedCategory(
@@ -499,7 +498,6 @@ export default function ConsumptionPage() {
     );
 
     setIsCategoryOpen(false);
-
     setIsClassificationOpen(false);
   };
 
@@ -514,62 +512,47 @@ export default function ConsumptionPage() {
     month === today.getMonth() + 1;
 
   // ============================================================
+  // 미분류 여부
+  // ============================================================
+
+  const isUnclassified = (
+    type: ClassificationType
+  ) => {
+    return (
+      type === "UNCLASSIFIED" ||
+      type === "UNCONFIRMED"
+    );
+  };
+
+  // ============================================================
   // 현재 페이지 거래
   // ============================================================
 
+  /*
+   * 백엔드가 페이징을 처리하므로
+   * transactions를 다시 필터링해서 페이지 건수를
+   * 변경하지 않는다.
+   *
+   * 특히 "분류"를 프론트에서 filter하면
+   * totalPages / totalElements와 실제 목록이
+   * 서로 맞지 않을 수 있다.
+   */
+
   const filteredTransactions =
-    transactions.filter(
-      (transaction) => {
-        /*
-         * 미분류 필터를 백엔드에서도 처리하지만
-         * 응답 데이터가 UNCONFIRMED를 포함할 수 있기 때문에
-         * 프론트에서도 한 번 더 방어적으로 처리
-         */
-
-        if (
-          selectedClassification ===
-          "미분류"
-        ) {
-          return (
-            transaction.classificationType ===
-            "UNCLASSIFIED" ||
-            transaction.classificationType ===
-            "UNCONFIRMED"
-          );
-        }
-
-        if (
-          selectedClassification ===
-          "분류"
-        ) {
-          return (
-            transaction.classificationType !==
-            "UNCLASSIFIED" &&
-            transaction.classificationType !==
-            "UNCONFIRMED"
-          );
-        }
-
-        return true;
-      }
-    );
+    transactions;
 
   // ============================================================
   // 전체 거래 건수
-  //
-  // 페이징에서는 현재 페이지 길이가 아니라
-  // totalElements를 사용해야 함
   // ============================================================
 
   const transactionCount =
-    consumptionSummary?.totalElements ??
-    0;
+    consumptionSummary?.totalElements ?? 0;
 
   // ============================================================
   // 총 지출
   // ============================================================
 
-  const filteredTotalAmount =
+  const totalExpense =
     consumptionSummary?.totalAmount ?? 0;
 
   // ============================================================
@@ -578,7 +561,7 @@ export default function ConsumptionPage() {
 
   const abnormalCount =
     consumptionSummary?.abnormalCount ??
-    filteredTransactions.filter(
+    transactions.filter(
       (transaction) =>
         transaction.isAbnormal
     ).length;
@@ -589,12 +572,11 @@ export default function ConsumptionPage() {
 
   const uncategorizedCount =
     consumptionSummary?.uncategorizedCount ??
-    filteredTransactions.filter(
+    transactions.filter(
       (transaction) =>
-        transaction.classificationType ===
-        "UNCLASSIFIED" ||
-        transaction.classificationType ===
-        "UNCONFIRMED"
+        isUnclassified(
+          transaction.classificationType
+        )
     ).length;
 
   // ============================================================
@@ -650,19 +632,6 @@ export default function ConsumptionPage() {
   };
 
   // ============================================================
-  // 미분류인지 확인
-  // ============================================================
-
-  const isUnclassified = (
-    type: ClassificationType
-  ) => {
-    return (
-      type === "UNCLASSIFIED" ||
-      type === "UNCONFIRMED"
-    );
-  };
-
-  // ============================================================
   // 카테고리 선택
   // ============================================================
 
@@ -670,10 +639,7 @@ export default function ConsumptionPage() {
     category: string
   ) => {
     setSelectedCategory(category);
-
-    // 필터 변경 → 첫 페이지
     setCurrentPage(0);
-
     setIsCategoryOpen(false);
   };
 
@@ -688,9 +654,7 @@ export default function ConsumptionPage() {
       classification
     );
 
-    // 필터 변경 → 첫 페이지
     setCurrentPage(0);
-
     setIsClassificationOpen(false);
   };
 
@@ -703,7 +667,7 @@ export default function ConsumptionPage() {
     "전체 카테고리" ||
     selectedClassification !==
     "전체" ||
-    search.length > 0;
+    search.trim().length > 0;
 
   // ============================================================
   // 필터 초기화
@@ -720,7 +684,6 @@ export default function ConsumptionPage() {
       "전체"
     );
 
-    // 초기화 → 첫 페이지
     setCurrentPage(0);
   };
 
@@ -783,9 +746,27 @@ export default function ConsumptionPage() {
         }
       );
 
-      await api.patch(
-        `/api/consumption/${selectedTransaction.transactionId}/category/${modalCategoryId}`
+      const response =
+        await api.patch<
+          ApiResponse<any>
+        >(
+          `/api/consumption/${selectedTransaction.transactionId}/category/${modalCategoryId}`
+        );
+
+      console.log(
+        "카테고리 수정 응답:",
+        response.data
       );
+
+      if (
+        response.data &&
+        response.data.isSuccess === false
+      ) {
+        throw new Error(
+          response.data.message ||
+          "카테고리 수정에 실패했습니다."
+        );
+      }
 
       const selectedCategoryInfo =
         CATEGORIES.find(
@@ -794,6 +775,10 @@ export default function ConsumptionPage() {
             modalCategoryId
         );
 
+      // ========================================================
+      // 현재 화면 거래 수정
+      // ========================================================
+
       setTransactions((prev) =>
         prev.map(
           (transaction) =>
@@ -801,17 +786,75 @@ export default function ConsumptionPage() {
               selectedTransaction.transactionId
               ? {
                 ...transaction,
+
                 categoryId:
                   modalCategoryId,
+
                 categoryName:
                   selectedCategoryInfo?.name ??
                   transaction.categoryName,
+
                 classificationType:
                   "USER",
               }
               : transaction
         )
       );
+
+      // ========================================================
+      // 미분류 카운트 감소
+      // ========================================================
+
+      setConsumptionSummary(
+        (prev) => {
+          if (!prev) {
+            return prev;
+          }
+
+          const wasUnclassified =
+            isUnclassified(
+              selectedTransaction.classificationType
+            );
+
+          return {
+            ...prev,
+
+            uncategorizedCount:
+              wasUnclassified
+                ? Math.max(
+                  0,
+                  (prev.uncategorizedCount ??
+                    0) - 1
+                )
+                : prev.uncategorizedCount,
+
+            transactions:
+              prev.transactions?.map(
+                (transaction) =>
+                  transaction.transactionId ===
+                    selectedTransaction.transactionId
+                    ? {
+                      ...transaction,
+
+                      categoryId:
+                        modalCategoryId,
+
+                      categoryName:
+                        selectedCategoryInfo?.name ??
+                        transaction.categoryName,
+
+                      classificationType:
+                        "USER",
+                    }
+                    : transaction
+              ),
+          };
+        }
+      );
+
+      // ========================================================
+      // 모달 닫기
+      // ========================================================
 
       setIsModalOpen(false);
 
@@ -840,6 +883,7 @@ export default function ConsumptionPage() {
 
       alert(
         error.response?.data?.message ??
+        error.message ??
         "카테고리 수정에 실패했습니다."
       );
     } finally {
@@ -865,7 +909,6 @@ export default function ConsumptionPage() {
 
     setCurrentPage(page);
 
-    // 페이지 이동 시 상단으로
     window.scrollTo({
       top: 0,
       behavior: "smooth",
@@ -878,19 +921,13 @@ export default function ConsumptionPage() {
 
   const getPageNumbers = () => {
     const totalPages =
-      consumptionSummary?.totalPages ??
-      0;
+      consumptionSummary?.totalPages ?? 0;
 
     if (totalPages <= 0) {
       return [];
     }
 
     const pages: number[] = [];
-
-    /*
-     * 페이지가 7개 이하라면
-     * 전부 표시
-     */
 
     if (totalPages <= 7) {
       for (
@@ -904,45 +941,27 @@ export default function ConsumptionPage() {
       return pages;
     }
 
-    /*
-     * 현재 페이지 주변을 보여줌
-     */
+    let start = Math.max(
+      0,
+      currentPage - 2
+    );
 
-    let start =
-      Math.max(
-        0,
-        currentPage - 2
-      );
-
-    let end =
-      Math.min(
-        totalPages - 1,
-        currentPage + 2
-      );
-
-    /*
-     * 앞쪽 페이지가 부족하면
-     * 뒤쪽을 더 보여줌
-     */
+    let end = Math.min(
+      totalPages - 1,
+      currentPage + 2
+    );
 
     if (currentPage <= 2) {
       start = 0;
       end = 4;
     }
 
-    /*
-     * 뒤쪽 페이지가 부족하면
-     * 앞쪽을 더 보여줌
-     */
-
     if (
       currentPage >=
       totalPages - 3
     ) {
-      start =
-        totalPages - 5;
-      end =
-        totalPages - 1;
+      start = totalPages - 5;
+      end = totalPages - 1;
     }
 
     for (
@@ -962,7 +981,6 @@ export default function ConsumptionPage() {
 
   return (
     <MainLayout activeMenu="소비 내역">
-
       <div className="w-full px-8 py-8 lg:px-12">
 
         {/* ====================================================
@@ -970,7 +988,6 @@ export default function ConsumptionPage() {
         ==================================================== */}
 
         <header className="mb-7 flex items-start justify-between">
-
           <div>
             <h1
               className="
@@ -993,7 +1010,6 @@ export default function ConsumptionPage() {
               월별 거래 내역
             </p>
           </div>
-
         </header>
 
         {/* ====================================================
@@ -1012,12 +1028,9 @@ export default function ConsumptionPage() {
             px-5
           "
         >
-
           <button
             type="button"
-            onClick={
-              handlePreviousMonth
-            }
+            onClick={handlePreviousMonth}
             className="
               flex h-11 w-11
               items-center
@@ -1034,7 +1047,6 @@ export default function ConsumptionPage() {
           </button>
 
           <div className="text-center">
-
             <h2
               className="
                 text-[24px]
@@ -1056,17 +1068,12 @@ export default function ConsumptionPage() {
                 ? "조회 중..."
                 : `${transactionCount.toLocaleString()}건`}
             </p>
-
           </div>
 
           <button
             type="button"
-            onClick={
-              handleNextMonth
-            }
-            disabled={
-              isCurrentMonth
-            }
+            onClick={handleNextMonth}
+            disabled={isCurrentMonth}
             className={`
               flex h-11 w-11
               items-center
@@ -1083,7 +1090,6 @@ export default function ConsumptionPage() {
           >
             <ChevronRight size={21} />
           </button>
-
         </section>
 
         {/* ====================================================
@@ -1099,6 +1105,7 @@ export default function ConsumptionPage() {
             xl:grid-cols-4
           "
         >
+          {/* 총 지출 */}
 
           <SummaryCard
             icon={
@@ -1108,7 +1115,7 @@ export default function ConsumptionPage() {
             value={
               transactionLoading
                 ? "조회 중..."
-                : `₩${filteredTotalAmount.toLocaleString()}`
+                : `₩${totalExpense.toLocaleString()}`
             }
             subText={
               hasActiveFilter
@@ -1117,6 +1124,8 @@ export default function ConsumptionPage() {
             }
             tone="blue"
           />
+
+          {/* 거래 건수 */}
 
           <SummaryCard
             icon={
@@ -1136,6 +1145,8 @@ export default function ConsumptionPage() {
             tone="green"
           />
 
+          {/* 이상 지출 */}
+
           <SummaryCard
             icon={
               <Wallet size={22} />
@@ -1144,11 +1155,13 @@ export default function ConsumptionPage() {
             value={
               transactionLoading
                 ? "조회 중..."
-                : `${abnormalCount}건`
+                : `${abnormalCount.toLocaleString()}건`
             }
             subText="이상 지출 확인"
             tone="red"
           />
+
+          {/* 미분류 */}
 
           <SummaryCard
             icon={
@@ -1158,12 +1171,11 @@ export default function ConsumptionPage() {
             value={
               transactionLoading
                 ? "조회 중..."
-                : `${uncategorizedCount}건`
+                : `${uncategorizedCount.toLocaleString()}건`
             }
             subText="분류 필요"
             tone="yellow"
           />
-
         </section>
 
         {/* ====================================================
@@ -1184,7 +1196,6 @@ export default function ConsumptionPage() {
             lg:flex-row
           "
         >
-
           {/* 검색 */}
 
           <div
@@ -1194,7 +1205,6 @@ export default function ConsumptionPage() {
               flex-1
             "
           >
-
             <Search
               size={20}
               className="
@@ -1210,11 +1220,11 @@ export default function ConsumptionPage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => {
+              onChange={(e) =>
                 handleSearchChange(
                   e.target.value
-                );
-              }}
+                )
+              }
               placeholder="가맹점 검색..."
               className="
                 h-11
@@ -1233,13 +1243,11 @@ export default function ConsumptionPage() {
                 focus:ring-[#2F6BEB]/10
               "
             />
-
           </div>
 
           {/* 카테고리 필터 */}
 
           <div className="relative">
-
             <button
               type="button"
               onClick={() => {
@@ -1301,7 +1309,6 @@ export default function ConsumptionPage() {
                   shadow-[0_8px_24px_rgba(0,0,0,0.08)]
                 "
               >
-
                 <button
                   type="button"
                   onClick={() =>
@@ -1331,9 +1338,7 @@ export default function ConsumptionPage() {
                 {CATEGORIES.map(
                   (category) => (
                     <button
-                      key={
-                        category.id
-                      }
+                      key={category.id}
                       type="button"
                       onClick={() =>
                         handleCategorySelect(
@@ -1360,16 +1365,13 @@ export default function ConsumptionPage() {
                     </button>
                   )
                 )}
-
               </div>
             )}
-
           </div>
 
           {/* 분류 방식 */}
 
           <div className="relative">
-
             <button
               type="button"
               onClick={() => {
@@ -1377,9 +1379,7 @@ export default function ConsumptionPage() {
                   (prev) => !prev
                 );
 
-                setIsCategoryOpen(
-                  false
-                );
+                setIsCategoryOpen(false);
               }}
               className="
                 flex h-11
@@ -1399,12 +1399,10 @@ export default function ConsumptionPage() {
               "
             >
               <span>
-                {
-                  selectedClassification ===
-                    "전체"
-                    ? "분류 방식 전체"
-                    : selectedClassification
-                }
+                {selectedClassification ===
+                  "전체"
+                  ? "분류 방식 전체"
+                  : selectedClassification}
               </span>
 
               <ChevronDown
@@ -1434,7 +1432,6 @@ export default function ConsumptionPage() {
                   shadow-[0_8px_24px_rgba(0,0,0,0.08)]
                 "
               >
-
                 {CLASSIFICATION_TYPES.map(
                   (classification) => (
                     <button
@@ -1463,21 +1460,16 @@ export default function ConsumptionPage() {
                         }
                       `}
                     >
-                      {
-                        classification ===
-                          "전체"
-                          ? "분류 방식 전체"
-                          : classification
-                      }
+                      {classification ===
+                        "전체"
+                        ? "분류 방식 전체"
+                        : classification}
                     </button>
                   )
                 )}
-
               </div>
             )}
-
           </div>
-
         </section>
 
         {/* ====================================================
@@ -1496,7 +1488,6 @@ export default function ConsumptionPage() {
               text-[#6B7280]
             "
           >
-
             {search && (
               <span
                 className="
@@ -1560,7 +1551,6 @@ export default function ConsumptionPage() {
             >
               전체 초기화
             </button>
-
           </div>
         )}
 
@@ -1575,9 +1565,7 @@ export default function ConsumptionPage() {
             gap-3
           "
         >
-
           {transactionLoading ? (
-
             <div
               className="
                 rounded-2xl
@@ -1596,12 +1584,10 @@ export default function ConsumptionPage() {
                 거래 내역을 불러오는 중...
               </p>
             </div>
-
-          ) : filteredTransactions.length > 0 ? (
-
+          ) : filteredTransactions.length >
+            0 ? (
             filteredTransactions.map(
               (transaction) => (
-
                 <button
                   key={
                     transaction.transactionId
@@ -1627,11 +1613,9 @@ export default function ConsumptionPage() {
                     hover:bg-[#FAFBFC]
                   "
                 >
-
                   {/* 왼쪽 */}
 
                   <div>
-
                     <div
                       className="
                         flex
@@ -1639,7 +1623,6 @@ export default function ConsumptionPage() {
                         gap-2
                       "
                     >
-
                       <h3
                         className="
                           font-semibold
@@ -1666,7 +1649,6 @@ export default function ConsumptionPage() {
                           이상 지출
                         </span>
                       )}
-
                     </div>
 
                     <div
@@ -1677,7 +1659,6 @@ export default function ConsumptionPage() {
                         gap-2
                       "
                     >
-
                       <span
                         className="
                           text-xs
@@ -1705,21 +1686,16 @@ export default function ConsumptionPage() {
                           text-[#9AA5B5]
                         "
                       >
-                        {
-                          formatDate(
-                            transaction.date
-                          )
-                        }
+                        {formatDate(
+                          transaction.date
+                        )}
                       </span>
-
                     </div>
-
                   </div>
 
                   {/* 오른쪽 */}
 
                   <div className="text-right">
-
                     <p
                       className="
                         text-[16px]
@@ -1728,9 +1704,7 @@ export default function ConsumptionPage() {
                       "
                     >
                       ₩
-                      {
-                        transaction.amount.toLocaleString()
-                      }
+                      {transaction.amount.toLocaleString()}
                     </p>
 
                     <p
@@ -1745,22 +1719,15 @@ export default function ConsumptionPage() {
                         }
                       `}
                     >
-                      {
-                        getClassificationLabel(
-                          transaction.classificationType
-                        )
-                      }
+                      {getClassificationLabel(
+                        transaction.classificationType
+                      )}
                     </p>
-
                   </div>
-
                 </button>
-
               )
             )
-
           ) : (
-
             <div
               className="
                 rounded-2xl
@@ -1770,7 +1737,6 @@ export default function ConsumptionPage() {
                 text-center
               "
             >
-
               <Search
                 size={32}
                 className="
@@ -1788,11 +1754,8 @@ export default function ConsumptionPage() {
               >
                 거래 내역이 없습니다.
               </p>
-
             </div>
-
           )}
-
         </div>
 
         {/* ====================================================
@@ -1802,17 +1765,15 @@ export default function ConsumptionPage() {
         {!transactionLoading &&
           (consumptionSummary?.totalPages ??
             0) > 1 && (
-
             <div
               className="
-              mt-8
-              flex
-              items-center
-              justify-center
-              gap-2
-            "
+                mt-8
+                flex
+                items-center
+                justify-center
+                gap-2
+              "
             >
-
               {/* 이전 */}
 
               <button
@@ -1826,22 +1787,22 @@ export default function ConsumptionPage() {
                   !consumptionSummary?.hasPrevious
                 }
                 className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-xl
-                border
-                border-[#E5EAF0]
-                bg-white
-                text-[#64748B]
-                transition-colors
-                hover:bg-[#F8FAFC]
-                disabled:cursor-not-allowed
-                disabled:text-[#D5DAE1]
-                disabled:hover:bg-white
-              "
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  border
+                  border-[#E5EAF0]
+                  bg-white
+                  text-[#64748B]
+                  transition-colors
+                  hover:bg-[#F8FAFC]
+                  disabled:cursor-not-allowed
+                  disabled:text-[#D5DAE1]
+                  disabled:hover:bg-white
+                "
               >
                 <ChevronLeft size={18} />
               </button>
@@ -1859,22 +1820,23 @@ export default function ConsumptionPage() {
                       )
                     }
                     className={`
-                    flex
-                    h-10
-                    min-w-10
-                    items-center
-                    justify-center
-                    rounded-xl
-                    px-3
-                    text-sm
-                    font-semibold
-                    transition-colors
+                      flex
+                      h-10
+                      min-w-10
+                      items-center
+                      justify-center
+                      rounded-xl
+                      px-3
+                      text-sm
+                      font-semibold
+                      transition-colors
 
-                    ${currentPage === page
+                      ${currentPage ===
+                        page
                         ? "bg-[#2161F5] text-white shadow-[0_3px_10px_rgba(33,97,245,0.18)]"
                         : "border border-[#E5EAF0] bg-white text-[#64748B] hover:bg-[#F8FAFC]"
                       }
-                  `}
+                    `}
                   >
                     {page + 1}
                   </button>
@@ -1894,26 +1856,25 @@ export default function ConsumptionPage() {
                   !consumptionSummary?.hasNext
                 }
                 className="
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                rounded-xl
-                border
-                border-[#E5EAF0]
-                bg-white
-                text-[#64748B]
-                transition-colors
-                hover:bg-[#F8FAFC]
-                disabled:cursor-not-allowed
-                disabled:text-[#D5DAE1]
-                disabled:hover:bg-white
-              "
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  border
+                  border-[#E5EAF0]
+                  bg-white
+                  text-[#64748B]
+                  transition-colors
+                  hover:bg-[#F8FAFC]
+                  disabled:cursor-not-allowed
+                  disabled:text-[#D5DAE1]
+                  disabled:hover:bg-white
+                "
               >
                 <ChevronRight size={18} />
               </button>
-
             </div>
           )}
 
@@ -1923,25 +1884,27 @@ export default function ConsumptionPage() {
 
         {!transactionLoading &&
           consumptionSummary &&
-          consumptionSummary.totalPages > 0 && (
-
+          consumptionSummary.totalPages >
+          0 && (
             <p
               className="
-              mt-3
-              text-center
-              text-xs
-              text-[#9AA5B5]
-            "
+                mt-3
+                text-center
+                text-xs
+                text-[#9AA5B5]
+              "
             >
               {currentPage + 1} /{" "}
-              {consumptionSummary.totalPages} 페이지
+              {
+                consumptionSummary.totalPages
+              }{" "}
+              페이지
               {" · "}
               총{" "}
               {consumptionSummary.totalElements.toLocaleString()}
               건
             </p>
           )}
-
       </div>
 
       {/* ======================================================
@@ -1950,7 +1913,6 @@ export default function ConsumptionPage() {
 
       {isModalOpen &&
         selectedTransaction && (
-
           <div
             className="
               fixed
@@ -1972,7 +1934,6 @@ export default function ConsumptionPage() {
               }
             }}
           >
-
             {/* Modal */}
 
             <div
@@ -1988,7 +1949,6 @@ export default function ConsumptionPage() {
                 e.stopPropagation()
               }
             >
-
               {/* Header */}
 
               <div
@@ -2002,7 +1962,6 @@ export default function ConsumptionPage() {
                   px-6
                 "
               >
-
                 <h2
                   className="
                     text-[18px]
@@ -2038,13 +1997,11 @@ export default function ConsumptionPage() {
                 >
                   <X size={19} />
                 </button>
-
               </div>
 
               {/* Content */}
 
               <div className="px-6 py-6">
-
                 {/* 거래 정보 */}
 
                 <div
@@ -2055,7 +2012,6 @@ export default function ConsumptionPage() {
                     py-4
                   "
                 >
-
                   <p
                     className="
                       text-[15px]
@@ -2077,11 +2033,8 @@ export default function ConsumptionPage() {
                     "
                   >
                     ₩
-                    {
-                      selectedTransaction.amount.toLocaleString()
-                    }
+                    {selectedTransaction.amount.toLocaleString()}
                   </p>
-
                 </div>
 
                 {/* 카테고리 선택 */}
@@ -2105,10 +2058,8 @@ export default function ConsumptionPage() {
                     gap-2
                   "
                 >
-
                   {CATEGORIES.map(
                     (category) => {
-
                       const isSelected =
                         modalCategoryId ===
                         category.id;
@@ -2146,7 +2097,6 @@ export default function ConsumptionPage() {
                             }
                           `}
                         >
-
                           <span
                             className="
                               flex
@@ -2183,14 +2133,11 @@ export default function ConsumptionPage() {
                               category.name
                             }
                           </span>
-
                         </button>
                       );
                     }
                   )}
-
                 </div>
-
               </div>
 
               {/* Footer */}
@@ -2203,7 +2150,6 @@ export default function ConsumptionPage() {
                   pb-6
                 "
               >
-
                 {/* 취소 */}
 
                 <button
@@ -2271,15 +2217,10 @@ export default function ConsumptionPage() {
                     ? "저장 중..."
                     : "저장"}
                 </button>
-
               </div>
-
             </div>
-
           </div>
-
         )}
-
     </MainLayout>
   );
 }
