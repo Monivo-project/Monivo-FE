@@ -994,27 +994,6 @@ export default function ConsumptionPage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            className="
-              flex h-11
-              items-center
-              gap-2
-              rounded-xl
-              bg-[#2161F5]
-              px-5
-              text-sm
-              font-semibold
-              text-white
-              shadow-[0_3px_10px_rgba(33,97,245,0.18)]
-              transition-colors
-              hover:bg-[#1553DE]
-            "
-          >
-            <Plus size={19} />
-            거래 추가
-          </button>
-
         </header>
 
         {/* ====================================================

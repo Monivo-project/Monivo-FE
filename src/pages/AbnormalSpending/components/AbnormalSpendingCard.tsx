@@ -525,34 +525,6 @@ export default function AbnormalSpendingCard({
                   Category Edit
               ================================================= */}
 
-              <button
-                type="button"
-                onClick={
-                  handleOpenCategoryModal
-                }
-                disabled={
-                  isSaving ||
-                  isConfirming
-                }
-                className="
-                  rounded-xl
-                  border
-                  border-gray-200
-                  bg-white
-                  px-4
-                  py-2
-                  text-[14px]
-                  font-medium
-                  text-[#596579]
-                  transition
-                  hover:bg-gray-50
-                  disabled:cursor-not-allowed
-                  disabled:opacity-50
-                "
-              >
-                카테고리 수정
-              </button>
-
               {/* ================================================
                   Confirm
               ================================================= */}

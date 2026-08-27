@@ -25,18 +25,6 @@ export default function ReportPage() {
               2026년 8월 상세 분석
             </p>
           </div>
-
-          <button
-            type="button"
-            className="flex h-[46px] items-center gap-2 rounded-[14px] border border-[#E2E8F0] bg-white px-5 text-[14px] font-medium text-[#475569] transition hover:bg-[#F8FAFC]"
-          >
-            <Download
-              size={18}
-              strokeWidth={1.8}
-            />
-
-            리포트 다운로드
-          </button>
         </header>
 
         {/* =====================================================

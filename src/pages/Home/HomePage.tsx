@@ -214,30 +214,6 @@ export default function HomePage() {
             </p>
           </div>
 
-          <button
-            className="
-              flex
-              items-center
-              gap-2
-              rounded-lg
-              border
-              border-[#E1E6ED]
-              bg-white
-              px-4
-              py-2.5
-              text-sm
-              font-medium
-              text-[#4B5563]
-              transition-colors
-              hover:bg-[#F8FAFC]
-            "
-          >
-            <Download size={19} />
-
-            <span>
-              내보내기
-            </span>
-          </button>
         </header>
 
 
