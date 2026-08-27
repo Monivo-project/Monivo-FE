@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import {
     Brain,
-    CalendarDays,
     TrendingDown,
     Wallet,
 } from "lucide-react";
 import api from "../../../api/api";
+import BudgetProgress from "../../Home/components/BudgetProgress";
+
 
 // ============================================================
 // Props
@@ -14,6 +15,8 @@ import api from "../../../api/api";
 interface ExpectedBudgetProps {
     totalExpense: number;
 }
+
+
 
 // ============================================================
 // API Response Interface
@@ -49,10 +52,12 @@ const formatAmount = (amount: number) => {
 export default function ExpectedBudget({
     totalExpense,
 }: ExpectedBudgetProps) {
+
     const [data, setData] =
         useState<ExpectedBudgetResponse["result"] | null>(null);
 
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] =
+        useState(true);
 
     // ============================================================
     // 현재 연 / 월
@@ -68,10 +73,13 @@ export default function ExpectedBudget({
     // ============================================================
 
     useEffect(() => {
+
         const fetchExpectedBudget = async () => {
+
             setLoading(true);
 
             try {
+
                 const response =
                     await api.get<ExpectedBudgetResponse>(
                         "/api/home/expected-budget",
@@ -91,7 +99,9 @@ export default function ExpectedBudget({
                 setData(
                     response.data.result ?? null
                 );
+
             } catch (error: any) {
+
                 console.error(
                     "AI 예상 예산 조회 실패:",
                     error
@@ -103,12 +113,16 @@ export default function ExpectedBudget({
                 );
 
                 setData(null);
+
             } finally {
+
                 setLoading(false);
+
             }
         };
 
         fetchExpectedBudget();
+
     }, [year, month]);
 
     // ============================================================
@@ -116,6 +130,7 @@ export default function ExpectedBudget({
     // ============================================================
 
     if (loading) {
+
         return (
             <div className="flex min-h-[360px] items-center justify-center">
                 <p className="text-sm text-[#9AA5B5]">
@@ -123,6 +138,7 @@ export default function ExpectedBudget({
                 </p>
             </div>
         );
+
     }
 
     // ============================================================
@@ -130,6 +146,7 @@ export default function ExpectedBudget({
     // ============================================================
 
     if (!data) {
+
         return (
             <div className="flex min-h-[360px] items-center justify-center">
                 <p className="text-sm text-[#9AA5B5]">
@@ -137,48 +154,28 @@ export default function ExpectedBudget({
                 </p>
             </div>
         );
+
     }
 
     // ============================================================
-    // ⭐ 현재까지 사용 금액
+    // ⭐ 현재 실제 지출
     //
-    // 기존:
-    // data.currentAmount
-    //
-    // 변경:
-    // ReportPage에서 전달받은 totalExpense
+    // API의 currentAmount가 아니라
+    // ReportPage에서 전달받은 summary.totalExpense 사용
     // ============================================================
 
     const currentAmount =
         Number(totalExpense) || 0;
 
     // ============================================================
-    // ⭐ 예상 지출 대비 현재 사용 비율
+    // ⭐ 남은 예상 지출
     //
-    // 현재 사용 / 예상 지출 * 100
-    // ============================================================
-
-    const usagePercentage =
-        data.expectedAmount > 0
-            ? Math.min(
-                (currentAmount /
-                    data.expectedAmount) *
-                100,
-                100
-            )
-            : 0;
-
-    // ============================================================
-    // ⭐ 이번 달 남은 예상 지출
-    //
-    // 예상 지출 - 현재까지 사용
-    //
-    // 음수가 되지 않도록 Math.max 사용
+    // 예상 지출 - 실제 지출
     // ============================================================
 
     const remainingExpectedAmount =
         Math.max(
-            data.expectedAmount -
+            Number(data.expectedAmount) -
             currentAmount,
             0
         );
@@ -188,6 +185,7 @@ export default function ExpectedBudget({
     // ============================================================
 
     return (
+
         <div className="flex flex-col gap-5">
 
             {/* ======================================================
@@ -257,71 +255,19 @@ export default function ExpectedBudget({
             </div>
 
             {/* ======================================================
-                ⭐ 현재 사용 / 남은 예상 지출
+                ⭐ 예상 지출 사용률
+                BudgetProgress 컴포넌트 사용
             ====================================================== */}
 
-            <div className="rounded-[14px] border border-[#EEF0F3] p-5">
-
-                <div className="mb-4 flex items-center justify-between">
-
-                    <div className="flex items-center gap-2">
-
-                        <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FFF7ED]">
-
-                            <CalendarDays
-                                size={17}
-                                className="text-[#F97316]"
-                            />
-
-                        </div>
-
-                        <span className="text-[13px] font-medium text-[#64748B]">
-                            현재까지 사용
-                        </span>
-
-                    </div>
-
-                    {/* ⭐ summary.totalExpense */}
-
-                    <span className="text-[14px] font-semibold text-[#475569]">
-                        {formatAmount(
-                            currentAmount
-                        )}
-                    </span>
-
-                </div>
-
-                {/* ==================================================
-                    게이지
-                ================================================== */}
-
-                <div className="h-[8px] w-full overflow-hidden rounded-full bg-[#EEF0F3]">
-
-                    <div
-                        className="h-full rounded-full bg-[#6366F1] transition-all duration-700"
-                        style={{
-                            width: `${usagePercentage}%`,
-                        }}
-                    />
-
-                </div>
-
-                <div className="mt-2 flex items-center justify-between">
-
-                    <span className="text-[11px] text-[#A5AEBB]">
-                        예상 지출 대비
-                    </span>
-
-                    <span className="text-[11px] font-medium text-[#64748B]">
-                        {usagePercentage.toFixed(1)}%
-                    </span>
-
-                </div>
-
-            </div>
+            <BudgetProgress
+                currentAmount={currentAmount}
+                expectedAmount={
+                    Number(data.expectedAmount) || 0
+                }
+            />
 
             {/* ======================================================
-                ⭐ 남은 예상 지출
+                남은 예상 지출
             ====================================================== */}
 
             <div className="flex items-center justify-between rounded-[14px] bg-[#F8FAFC] px-5 py-4">

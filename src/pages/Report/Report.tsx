@@ -16,6 +16,7 @@ interface SummaryResponse {
   isSuccess: boolean;
   code: string;
   message: string;
+
   result: {
     totalExpense: number;
   };
@@ -27,11 +28,10 @@ interface SummaryResponse {
 
 export default function ReportPage() {
   /* ==========================================================
-     Summary
+     Summary - 현재 총 지출
   ========================================================== */
 
-  const [totalExpense, setTotalExpense] =
-    useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
 
   const [summaryLoading, setSummaryLoading] =
     useState(true);
@@ -54,15 +54,6 @@ export default function ReportPage() {
       try {
         setSummaryLoading(true);
 
-        /*
-         * Home에서 사용하는 summary API와
-         * 동일한 API를 사용해야 함.
-         *
-         * 아래 URL은 예시이므로
-         * Home에서 실제 사용하는 summary API가
-         * 다르다면 그 URL로 변경.
-         */
-
         const response =
           await api.get<SummaryResponse>(
             "/api/home/summary",
@@ -79,11 +70,25 @@ export default function ReportPage() {
           response.data
         );
 
-        setTotalExpense(
+        /* ====================================================
+           ⭐ 현재 총 지출
+
+           Home의 summary.totalExpense와
+           동일한 값을 사용
+        ==================================================== */
+
+        const expense =
           Number(
             response.data.result?.totalExpense ?? 0
-          )
+          );
+
+        setTotalExpense(expense);
+
+        console.log(
+          "현재 총 지출:",
+          expense
         );
+
       } catch (error: any) {
         console.error(
           "소비 Summary 조회 실패:",
@@ -96,12 +101,14 @@ export default function ReportPage() {
         );
 
         setTotalExpense(0);
+
       } finally {
         setSummaryLoading(false);
       }
     };
 
     fetchSummary();
+
   }, [year, month]);
 
   /* ==========================================================
@@ -110,6 +117,7 @@ export default function ReportPage() {
 
   return (
     <MainLayout activeMenu="소비 리포트">
+
       <div className="w-full px-8 py-8 lg:px-12">
 
         {/* =====================================================
@@ -250,7 +258,12 @@ export default function ReportPage() {
               AI 예상 지출 및 예산
             </h2>
 
+            {/* =================================================
+                Summary 로딩 중
+            ================================================= */}
+
             {summaryLoading ? (
+
               <div
                 className="
                   flex
@@ -259,6 +272,7 @@ export default function ReportPage() {
                   justify-center
                 "
               >
+
                 <p
                   className="
                     text-sm
@@ -267,17 +281,27 @@ export default function ReportPage() {
                 >
                   소비 데이터를 불러오는 중...
                 </p>
+
               </div>
+
             ) : (
+
+              /* =================================================
+                 ⭐ totalExpense를 ExpectedBudget으로 전달
+              ================================================= */
+
               <ExpectedBudget
                 totalExpense={totalExpense}
               />
+
             )}
 
           </section>
 
         </div>
+
       </div>
+
     </MainLayout>
   );
 }

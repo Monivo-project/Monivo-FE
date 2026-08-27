@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../../api/api";
 
+// ============================================================
+// API Response Interface
+// ============================================================
+
 interface CategoryExpense {
   categoryId: number;
   categoryName: string;
@@ -19,6 +23,18 @@ interface ReportResponse {
     categoryExpenses: CategoryExpense[];
     budgetComparisons: unknown[];
   };
+}
+
+// ============================================================
+// 화면에서 사용할 데이터
+// ============================================================
+
+interface NormalizedCategory {
+  categoryId: number;
+  categoryName: string;
+  amount: number;
+  percentage: number;
+  color: string;
 }
 
 // ============================================================
@@ -134,10 +150,19 @@ export default function CategoryDistribution() {
 
   // ============================================================
   // 12개 카테고리 정규화
+  //
+  // API에서 받은 percentage는 사용하지 않고
+  // 실제 amount를 기준으로 다시 계산한다.
   // ============================================================
 
-  const normalizedCategories = useMemo(() => {
-    return CATEGORY_ORDER.map(
+  const normalizedCategories = useMemo<
+    NormalizedCategory[]
+  >(() => {
+    // ----------------------------------------------------------
+    // 1. 12개 카테고리 생성
+    // ----------------------------------------------------------
+
+    const normalized = CATEGORY_ORDER.map(
       (categoryName) => {
         const existing = categories.find(
           (category) =>
@@ -153,8 +178,8 @@ export default function CategoryDistribution() {
           amount:
             Number(existing?.amount) || 0,
 
-          percentage:
-            Number(existing?.percentage) || 0,
+          // 아래에서 다시 계산
+          percentage: 0,
 
           color:
             CATEGORY_COLORS[categoryName] ??
@@ -162,27 +187,126 @@ export default function CategoryDistribution() {
         };
       }
     );
+
+    // ----------------------------------------------------------
+    // 2. 전체 지출 금액 계산
+    // ----------------------------------------------------------
+
+    const totalAmount = normalized.reduce(
+      (sum, category) =>
+        sum + category.amount,
+      0
+    );
+
+    console.log(
+      "전체 카테고리 지출:",
+      totalAmount
+    );
+
+    // ----------------------------------------------------------
+    // 3. 실제 금액을 기준으로 퍼센트 계산
+    //
+    // 예:
+    //
+    // 식비       100,000
+    // 쇼핑       200,000
+    // 교통       100,000
+    //
+    // 전체       400,000
+    //
+    // 식비       25%
+    // 쇼핑       50%
+    // 교통       25%
+    // ----------------------------------------------------------
+
+    if (totalAmount <= 0) {
+      return normalized;
+    }
+
+    return normalized.map(
+      (category) => ({
+        ...category,
+
+        percentage:
+          (category.amount /
+            totalAmount) *
+          100,
+      })
+    );
   }, [categories]);
 
   // ============================================================
   // Donut Gradient
+  //
+  // 실제 계산된 percentage를 사용한다.
   // ============================================================
 
   const gradient = useMemo(() => {
     let current = 0;
 
-    return normalizedCategories
-      .map((category) => {
-        const start = current;
+    const segments =
+      normalizedCategories
+        .filter(
+          (category) =>
+            category.percentage > 0
+        )
+        .map((category) => {
+          const start = current;
 
-        const end =
-          current + category.percentage;
+          const end =
+            current +
+            category.percentage;
 
-        current = end;
+          current = end;
 
-        return `${category.color} ${start}% ${end}%`;
-      })
-      .join(", ");
+          return `${category.color} ${start}% ${end}%`;
+        });
+
+    // ----------------------------------------------------------
+    // 마지막 구간이 100%가 안 되는 부동소수점 오차 방지
+    // ----------------------------------------------------------
+
+    if (segments.length > 0 && current < 100) {
+      const lastCategory =
+        normalizedCategories
+          .filter(
+            (category) =>
+              category.percentage > 0
+          )
+          .at(-1);
+
+      if (lastCategory) {
+        // 마지막 색상으로 남은 아주 작은 영역 보정
+        segments[
+          segments.length - 1
+        ] =
+          `${lastCategory.color} ${100 -
+          lastCategory.percentage
+          }% 100%`;
+      }
+    }
+
+    // ----------------------------------------------------------
+    // 지출 데이터가 없는 경우
+    // ----------------------------------------------------------
+
+    if (segments.length === 0) {
+      return "#EEF0F3 0% 100%";
+    }
+
+    return segments.join(", ");
+  }, [normalizedCategories]);
+
+  // ============================================================
+  // 전체 지출
+  // ============================================================
+
+  const totalAmount = useMemo(() => {
+    return normalizedCategories.reduce(
+      (sum, category) =>
+        sum + category.amount,
+      0
+    );
   }, [normalizedCategories]);
 
   // ============================================================
@@ -220,7 +344,11 @@ export default function CategoryDistribution() {
           justify-center
         "
       >
-        {/* 도넛 */}
+
+        {/* ====================================================
+            도넛
+        ==================================================== */}
+
         <div
           className="
             h-[250px]
@@ -233,7 +361,10 @@ export default function CategoryDistribution() {
           }}
         />
 
-        {/* 가운데 구멍 */}
+        {/* ====================================================
+            가운데 구멍
+        ==================================================== */}
+
         <div
           className="
             absolute
@@ -243,11 +374,46 @@ export default function CategoryDistribution() {
             bg-white
           "
         />
+
+        {/* ====================================================
+            가운데 전체 지출 금액
+        ==================================================== */}
+
+        <div
+          className="
+            absolute
+            flex
+            flex-col
+            items-center
+            justify-center
+          "
+        >
+          <span
+            className="
+              text-[11px]
+              font-medium
+              text-[#94A3B8]
+            "
+          >
+            총 지출
+          </span>
+
+          <span
+            className="
+              mt-1
+              text-[16px]
+              font-bold
+              text-[#172033]
+            "
+          >
+            {formatAmount(totalAmount)}
+          </span>
+        </div>
       </div>
 
       {/* ======================================================
           Category List
-          3열 Grid
+          2열 Grid
       ====================================================== */}
 
       <div
@@ -271,6 +437,7 @@ export default function CategoryDistribution() {
                 gap-2
               "
             >
+
               {/* ==================================================
                   색상
               ================================================== */}
@@ -323,7 +490,7 @@ export default function CategoryDistribution() {
               </span>
 
               {/* ==================================================
-                  비율
+                  실제 계산된 비율
               ================================================== */}
 
               <span
@@ -336,7 +503,9 @@ export default function CategoryDistribution() {
                 "
               >
                 (
-                {category.percentage.toFixed(1)}
+                {category.percentage.toFixed(
+                  1
+                )}
                 %)
               </span>
             </div>
