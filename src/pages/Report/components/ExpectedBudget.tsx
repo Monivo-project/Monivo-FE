@@ -18,7 +18,7 @@ interface ExpectedBudgetProps {
 
 
 // ============================================================
-// API Response Interface
+// 예상 지출 API Response
 // ============================================================
 
 interface ExpectedBudgetResponse {
@@ -34,6 +34,30 @@ interface ExpectedBudgetResponse {
         confidence: number;
         analyzedMonths: number;
     };
+}
+
+
+// ============================================================
+// Transaction
+// ============================================================
+
+interface Transaction {
+    id: number;
+    amount: number;
+    transactionType: "INCOME" | "EXPENSE";
+    date: string;
+}
+
+
+// ============================================================
+// Transaction API Response
+// ============================================================
+
+interface TransactionResponse {
+    isSuccess: boolean;
+    code: string;
+    message: string;
+    result: Transaction[];
 }
 
 
@@ -57,6 +81,9 @@ export default function ExpectedBudget({
     const [data, setData] =
         useState<ExpectedBudgetResponse["result"] | null>(null);
 
+    const [currentAmount, setCurrentAmount] =
+        useState(0);
+
     const [loading, setLoading] =
         useState(true);
 
@@ -77,13 +104,17 @@ export default function ExpectedBudget({
 
     useEffect(() => {
 
-        const fetchExpectedBudget = async () => {
+        const fetchData = async () => {
 
             setLoading(true);
 
             try {
 
-                const response =
+                // ====================================================
+                // 1. 예상 지출 API
+                // ====================================================
+
+                const expectedBudgetResponse =
                     await api.get<ExpectedBudgetResponse>(
                         "/api/home/expected-budget",
                         {
@@ -94,19 +125,86 @@ export default function ExpectedBudget({
                         }
                     );
 
+
                 console.log(
                     "AI 예상 예산:",
-                    response.data
+                    expectedBudgetResponse.data
                 );
 
+
                 setData(
-                    response.data.result ?? null
+                    expectedBudgetResponse.data.result ?? null
                 );
+
+
+                // ====================================================
+                // 2. Transaction 조회
+                // ====================================================
+
+                const transactionResponse =
+                    await api.get<TransactionResponse>(
+                        "/api/transactions",
+                        {
+                            params: {
+                                year,
+                                month,
+                            },
+                        }
+                    );
+
+
+                console.log(
+                    "현재 월 거래내역:",
+                    transactionResponse.data
+                );
+
+
+                const transactions =
+                    transactionResponse.data.result ?? [];
+
+
+                // ====================================================
+                // 3. EXPENSE만 필터링
+                // ====================================================
+
+                const expenseTransactions =
+                    transactions.filter(
+                        transaction =>
+                            transaction.transactionType === "EXPENSE"
+                    );
+
+
+                // ====================================================
+                // 4. 현재 월 EXPENSE 합산
+                // ====================================================
+
+                const expenseAmount =
+                    expenseTransactions.reduce(
+                        (total, transaction) =>
+                            total + Number(transaction.amount || 0),
+                        0
+                    );
+
+
+                console.log(
+                    "현재 월 EXPENSE 합계:",
+                    expenseAmount
+                );
+
+
+                // ====================================================
+                // 5. 실제 지출 저장
+                // ====================================================
+
+                setCurrentAmount(
+                    expenseAmount
+                );
+
 
             } catch (error: any) {
 
                 console.error(
-                    "AI 예상 예산 조회 실패:",
+                    "예상 지출 / 거래내역 조회 실패:",
                     error
                 );
 
@@ -116,15 +214,18 @@ export default function ExpectedBudget({
                 );
 
                 setData(null);
+                setCurrentAmount(0);
 
             } finally {
 
                 setLoading(false);
 
             }
+
         };
 
-        fetchExpectedBudget();
+
+        fetchData();
 
     }, [year, month]);
 
@@ -164,19 +265,9 @@ export default function ExpectedBudget({
 
 
     // ============================================================
-    // ⭐ API에서 받은 현재 실제 지출
+    // 남은 예상 지출
     //
-    // response.result.currentAmount 사용
-    // ============================================================
-
-    const currentAmount =
-        Number(data.currentAmount) || 0;
-
-
-    // ============================================================
-    // ⭐ 남은 예상 지출
-    //
-    // 예상 지출 - 현재 실제 지출
+    // AI 예상 지출 - 실제 EXPENSE 지출
     // ============================================================
 
     const remainingExpectedAmount =
@@ -223,11 +314,9 @@ export default function ExpectedBudget({
                     </div>
 
                     <p className="text-[22px] font-bold text-[#172033]">
-
                         {formatAmount(
                             data.expectedAmount
                         )}
-
                     </p>
 
                 </div>
@@ -255,11 +344,9 @@ export default function ExpectedBudget({
                     </div>
 
                     <p className="text-[22px] font-bold text-[#172033]">
-
                         {formatAmount(
                             data.recommendedBudget
                         )}
-
                     </p>
 
                 </div>
@@ -268,8 +355,8 @@ export default function ExpectedBudget({
 
 
             {/* ======================================================
-                ⭐ 예상 지출 사용률
-                API currentAmount 사용
+                예상 지출 사용률
+                실제 Transaction의 EXPENSE 합계 사용
             ====================================================== */}
 
             <BudgetProgress
@@ -301,6 +388,7 @@ export default function ExpectedBudget({
                     </p>
 
                 </div>
+
 
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
 
@@ -337,9 +425,11 @@ export default function ExpectedBudget({
 
                 </div>
 
+
                 <p className="text-[13px] leading-5 text-[#64748B]">
                     {data.reason}
                 </p>
+
 
                 <div className="mt-4 flex items-center justify-between border-t border-[#E8EAFD] pt-3">
 
