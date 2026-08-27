@@ -4,7 +4,6 @@ import api from "../../api/api";
 
 import {
   CircleDollarSign,
-  Download,
   FileQuestion,
   Wallet,
   XCircle,

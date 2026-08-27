@@ -1,5 +1,3 @@
-import { Download } from "lucide-react";
-
 import MainLayout from "../../components/layout/MainLayout";
 
 import MonthlyExpenseChart from "./components/MonthlyExpenseChart";

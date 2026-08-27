@@ -6,6 +6,7 @@ import {
   Check,
   Zap,
   Loader2,
+  Pencil,
 } from "lucide-react";
 
 import type {
@@ -54,7 +55,6 @@ export default function AbnormalSpendingCard({
   item,
   onConfirm,
 }: AbnormalSpendingCardProps) {
-
   /* ==========================================================
      Category Modal
   ========================================================== */
@@ -91,7 +91,6 @@ export default function AbnormalSpendingCard({
   ========================================================== */
 
   const handleCategorySave = async () => {
-
     const categoryId =
       CATEGORY_IDS[selectedCategory];
 
@@ -103,11 +102,25 @@ export default function AbnormalSpendingCard({
     }
 
     try {
-
       setIsSaving(true);
 
+      console.log(
+        "이상 지출 카테고리 수정 요청:",
+        {
+          transactionId:
+            item.transactionId,
+          categoryId,
+        }
+      );
+
+      /*
+       * ConsumptionPage와 동일한 API 사용
+       *
+       * PATCH
+       * /api/consumption/{transactionId}/category/{categoryId}
+       */
       await api.patch(
-        `/api/${item.transactionId}/category/${categoryId}`
+        `/api/consumption/${item.transactionId}/category/${categoryId}`
       );
 
       /* ==============================================
@@ -120,21 +133,31 @@ export default function AbnormalSpendingCard({
 
       setIsCategoryModalOpen(false);
 
-    } catch (error) {
-
+      console.log(
+        "카테고리 수정 성공"
+      );
+    } catch (error: any) {
       console.error(
         "카테고리 수정 실패:",
         error
       );
 
-      alert(
-        "카테고리 수정에 실패했습니다."
+      console.error(
+        "Status:",
+        error.response?.status
       );
 
+      console.error(
+        "Response:",
+        error.response?.data
+      );
+
+      alert(
+        error.response?.data?.message ??
+        "카테고리 수정에 실패했습니다."
+      );
     } finally {
-
       setIsSaving(false);
-
     }
   };
 
@@ -146,9 +169,7 @@ export default function AbnormalSpendingCard({
 
   const handleConfirmAbnormal =
     async () => {
-
       try {
-
         setIsConfirming(true);
 
         /* ==============================================
@@ -174,26 +195,28 @@ export default function AbnormalSpendingCard({
         onConfirm(
           item.transactionId
         );
-
-      } catch (error) {
-
+      } catch (error: any) {
         console.error(
           "이상 지출 확인 처리 실패:",
           error
         );
 
-        /* ==============================================
-           API 실패 시 팝업
-        ============================================== */
-
-        alert(
-          "이상 지출 확인 처리에 실패했습니다."
+        console.error(
+          "Status:",
+          error.response?.status
         );
 
+        console.error(
+          "Response:",
+          error.response?.data
+        );
+
+        alert(
+          error.response?.data?.message ??
+          "이상 지출 확인 처리에 실패했습니다."
+        );
       } finally {
-
         setIsConfirming(false);
-
       }
     };
 
@@ -203,7 +226,10 @@ export default function AbnormalSpendingCard({
 
   const handleOpenCategoryModal =
     () => {
-
+      /*
+       * 현재 화면에 표시되고 있는
+       * 카테고리를 모달의 초기 선택값으로 설정
+       */
       setSelectedCategory(
         currentCategory
       );
@@ -216,7 +242,6 @@ export default function AbnormalSpendingCard({
   ========================================================== */
 
   const transactionForModal = {
-
     transactionId:
       item.transactionId,
 
@@ -265,7 +290,6 @@ export default function AbnormalSpendingCard({
           shadow-[0_1px_3px_rgba(0,0,0,0.02)]
         "
       >
-
         <div
           className="
             flex
@@ -273,7 +297,6 @@ export default function AbnormalSpendingCard({
             justify-between
           "
         >
-
           {/* ==================================================
               Left
           ================================================== */}
@@ -286,7 +309,6 @@ export default function AbnormalSpendingCard({
               gap-5
             "
           >
-
             {/* ==================================================
                 Icon
             ================================================== */}
@@ -312,7 +334,6 @@ export default function AbnormalSpendingCard({
             ================================================== */}
 
             <div className="min-w-0">
-
               {/* ================================================
                   Merchant / Category / Type
               ================================================= */}
@@ -325,7 +346,6 @@ export default function AbnormalSpendingCard({
                   gap-2
                 "
               >
-
                 {/* Merchant */}
 
                 <h2
@@ -374,7 +394,6 @@ export default function AbnormalSpendingCard({
                     }
                   `}
                 >
-
                   {item.type === "AI" ? (
                     <Brain size={14} />
                   ) : (
@@ -384,9 +403,7 @@ export default function AbnormalSpendingCard({
                   {item.type === "AI"
                     ? "AI"
                     : "규칙"}
-
                 </span>
-
               </div>
 
               {/* ================================================
@@ -415,7 +432,6 @@ export default function AbnormalSpendingCard({
                   gap-2
                 "
               >
-
                 <span
                   className="
                     text-[13px]
@@ -435,7 +451,6 @@ export default function AbnormalSpendingCard({
                 >
                   {item.score}점
                 </span>
-
               </div>
 
               {/* ================================================
@@ -455,7 +470,6 @@ export default function AbnormalSpendingCard({
                   py-2
                 "
               >
-
                 <AlertCircle
                   size={18}
                   className="
@@ -475,11 +489,8 @@ export default function AbnormalSpendingCard({
                 >
                   {item.reason}
                 </span>
-
               </div>
-
             </div>
-
           </div>
 
           {/* ==================================================
@@ -495,7 +506,6 @@ export default function AbnormalSpendingCard({
               items-end
             "
           >
-
             {/* Amount */}
 
             <p
@@ -520,10 +530,42 @@ export default function AbnormalSpendingCard({
                 gap-2
               "
             >
-
               {/* ================================================
                   Category Edit
               ================================================= */}
+
+              <button
+                type="button"
+                onClick={
+                  handleOpenCategoryModal
+                }
+                disabled={
+                  isConfirming ||
+                  isSaving
+                }
+                className="
+                  flex
+                  items-center
+                  gap-1.5
+                  rounded-xl
+                  border
+                  border-[#E2E6EC]
+                  bg-white
+                  px-4
+                  py-2
+                  text-[14px]
+                  font-medium
+                  text-[#596579]
+                  transition
+                  hover:bg-[#F8FAFC]
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              >
+                <Pencil size={15} />
+
+                카테고리 수정
+              </button>
 
               {/* ================================================
                   Confirm
@@ -555,7 +597,6 @@ export default function AbnormalSpendingCard({
                   disabled:opacity-50
                 "
               >
-
                 {isConfirming ? (
                   <Loader2
                     size={15}
@@ -568,15 +609,10 @@ export default function AbnormalSpendingCard({
                 {isConfirming
                   ? "처리 중..."
                   : "확인 완료"}
-
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
 
       {/* ======================================================
@@ -601,7 +637,10 @@ export default function AbnormalSpendingCard({
         }
 
         onClose={() => {
-
+          /*
+           * 저장하지 않고 닫으면
+           * 기존 카테고리로 되돌림
+           */
           setSelectedCategory(
             currentCategory
           );
@@ -609,7 +648,6 @@ export default function AbnormalSpendingCard({
           setIsCategoryModalOpen(
             false
           );
-
         }}
 
         onSave={
@@ -622,7 +660,6 @@ export default function AbnormalSpendingCard({
       ====================================================== */}
 
       {isSaving && (
-
         <div
           className="
             fixed
@@ -642,16 +679,13 @@ export default function AbnormalSpendingCard({
             shadow-lg
           "
         >
-
           <Loader2
             size={16}
             className="animate-spin"
           />
 
           카테고리 수정 중...
-
         </div>
-
       )}
 
       {/* ======================================================
@@ -659,7 +693,6 @@ export default function AbnormalSpendingCard({
       ====================================================== */}
 
       {isConfirming && (
-
         <div
           className="
             fixed
@@ -679,18 +712,14 @@ export default function AbnormalSpendingCard({
             shadow-lg
           "
         >
-
           <Loader2
             size={16}
             className="animate-spin"
           />
 
           이상 지출 확인 처리 중...
-
         </div>
-
       )}
-
     </>
   );
 }
@@ -714,7 +743,6 @@ function formatAmount(
 function formatDate(
   date: string
 ) {
-
   const parsedDate =
     new Date(date);
 
