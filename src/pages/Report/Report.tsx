@@ -289,10 +289,7 @@ export default function ReportPage() {
               /* =================================================
                  ⭐ totalExpense를 ExpectedBudget으로 전달
               ================================================= */
-
-              <ExpectedBudget
-                totalExpense={totalExpense}
-              />
+              <ExpectedBudget />
 
             )}
 
