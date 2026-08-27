@@ -6,14 +6,11 @@ import {
   Check,
   Zap,
   Loader2,
-  Pencil,
 } from "lucide-react";
 
 import type {
   AbnormalSpendingItem,
 } from "../AbnormalSpendingPage";
-
-import CategoryEditModal from "../../Consumption/components/CategoryEditModal";
 
 import api from "../../../api/api";
 
@@ -29,25 +26,6 @@ type AbnormalSpendingCardProps = {
 };
 
 /* ============================================================
-   Category ID
-============================================================ */
-
-const CATEGORY_IDS: Record<string, number> = {
-  식비: 1,
-  "쇼핑/생활": 2,
-  교통: 3,
-  "주거/통신": 4,
-  "여가/문화": 5,
-  "의료/건강": 6,
-  교육: 7,
-  여행: 8,
-  금융: 9,
-  "선물/경조사": 10,
-  반려동물: 11,
-  기타: 12,
-};
-
-/* ============================================================
    Card
 ============================================================ */
 
@@ -56,89 +34,48 @@ export default function AbnormalSpendingCard({
   onConfirm,
 }: AbnormalSpendingCardProps) {
   /* ==========================================================
-     Category Modal
-  ========================================================== */
-
-  const [
-    isCategoryModalOpen,
-    setIsCategoryModalOpen,
-  ] = useState(false);
-
-  const [
-    selectedCategory,
-    setSelectedCategory,
-  ] = useState(item.category);
-
-  const [
-    currentCategory,
-    setCurrentCategory,
-  ] = useState(item.category);
-
-  const [isSaving, setIsSaving] =
-    useState(false);
-
-  /* ==========================================================
      Confirm
   ========================================================== */
 
-  const [
-    isConfirming,
-    setIsConfirming,
-  ] = useState(false);
+  const [isConfirming, setIsConfirming] =
+    useState(false);
 
   /* ==========================================================
-     Category Save
+     Confirm Abnormal
+
+     PATCH /api/abnormal/{transactionId}
   ========================================================== */
 
-  const handleCategorySave = async () => {
-    const categoryId =
-      CATEGORY_IDS[selectedCategory];
-
-    if (!categoryId) {
-      alert(
-        "올바른 카테고리를 선택해주세요."
-      );
-      return;
-    }
-
+  const handleConfirmAbnormal = async () => {
     try {
-      setIsSaving(true);
+      setIsConfirming(true);
 
-      console.log(
-        "이상 지출 카테고리 수정 요청:",
-        {
-          transactionId:
-            item.transactionId,
-          categoryId,
-        }
-      );
+      /* ==============================================
+         서버에 이상 지출 확인 완료 요청
+      ============================================== */
 
-      /*
-       * ConsumptionPage와 동일한 API 사용
-       *
-       * PATCH
-       * /api/consumption/{transactionId}/category/{categoryId}
-       */
       await api.patch(
-        `/api/consumption/${item.transactionId}/category/${categoryId}`
+        `/api/abnormal/${item.transactionId}`
       );
 
       /* ==============================================
-         화면의 카테고리 즉시 변경
+         API 성공 후 팝업
       ============================================== */
 
-      setCurrentCategory(
-        selectedCategory
+      alert(
+        "이상 지출 확인이 완료되었습니다."
       );
 
-      setIsCategoryModalOpen(false);
+      /* ==============================================
+         부모 Page에서 리스트 제거
+      ============================================== */
 
-      console.log(
-        "카테고리 수정 성공"
+      onConfirm(
+        item.transactionId
       );
     } catch (error: any) {
       console.error(
-        "카테고리 수정 실패:",
+        "이상 지출 확인 처리 실패:",
         error
       );
 
@@ -154,119 +91,11 @@ export default function AbnormalSpendingCard({
 
       alert(
         error.response?.data?.message ??
-        "카테고리 수정에 실패했습니다."
+        "이상 지출 확인 처리에 실패했습니다."
       );
     } finally {
-      setIsSaving(false);
+      setIsConfirming(false);
     }
-  };
-
-  /* ==========================================================
-     Confirm Abnormal
-
-     PATCH /api/abnormal/{transactionId}
-  ========================================================== */
-
-  const handleConfirmAbnormal =
-    async () => {
-      try {
-        setIsConfirming(true);
-
-        /* ==============================================
-           서버에 이상 지출 확인 완료 요청
-        ============================================== */
-
-        await api.patch(
-          `/api/abnormal/${item.transactionId}`
-        );
-
-        /* ==============================================
-           API 성공 후 팝업
-        ============================================== */
-
-        alert(
-          "이상 지출 확인이 완료되었습니다."
-        );
-
-        /* ==============================================
-           부모 Page에서 리스트 제거
-        ============================================== */
-
-        onConfirm(
-          item.transactionId
-        );
-      } catch (error: any) {
-        console.error(
-          "이상 지출 확인 처리 실패:",
-          error
-        );
-
-        console.error(
-          "Status:",
-          error.response?.status
-        );
-
-        console.error(
-          "Response:",
-          error.response?.data
-        );
-
-        alert(
-          error.response?.data?.message ??
-          "이상 지출 확인 처리에 실패했습니다."
-        );
-      } finally {
-        setIsConfirming(false);
-      }
-    };
-
-  /* ==========================================================
-     Open Category Modal
-  ========================================================== */
-
-  const handleOpenCategoryModal =
-    () => {
-      /*
-       * 현재 화면에 표시되고 있는
-       * 카테고리를 모달의 초기 선택값으로 설정
-       */
-      setSelectedCategory(
-        currentCategory
-      );
-
-      setIsCategoryModalOpen(true);
-    };
-
-  /* ==========================================================
-     CategoryEditModal Data
-  ========================================================== */
-
-  const transactionForModal = {
-    transactionId:
-      item.transactionId,
-
-    merchant:
-      item.merchant,
-
-    amount:
-      item.amount,
-
-    date:
-      item.date,
-
-    categoryId:
-      CATEGORY_IDS[
-      currentCategory
-      ] ?? null,
-
-    categoryName:
-      currentCategory,
-
-    classificationType:
-      "UNCLASSIFIED" as const,
-
-    isAbnormal:
-      true,
   };
 
   /* ==========================================================
@@ -373,7 +202,7 @@ export default function AbnormalSpendingCard({
                     text-gray-600
                   "
                 >
-                  {currentCategory}
+                  {item.category}
                 </span>
 
                 {/* Detection Type */}
@@ -531,10 +360,6 @@ export default function AbnormalSpendingCard({
               "
             >
               {/* ================================================
-                  Category Edit
-              ================================================= */}
-
-              {/* ================================================
                   Confirm
               ================================================= */}
 
@@ -544,8 +369,7 @@ export default function AbnormalSpendingCard({
                   handleConfirmAbnormal
                 }
                 disabled={
-                  isConfirming ||
-                  isSaving
+                  isConfirming
                 }
                 className="
                   flex
@@ -581,79 +405,6 @@ export default function AbnormalSpendingCard({
           </div>
         </div>
       </div>
-
-      {/* ======================================================
-          Category Modal
-      ====================================================== */}
-
-      <CategoryEditModal
-        isOpen={
-          isCategoryModalOpen
-        }
-
-        transaction={
-          transactionForModal
-        }
-
-        category={
-          selectedCategory
-        }
-
-        onCategoryChange={
-          setSelectedCategory
-        }
-
-        onClose={() => {
-          /*
-           * 저장하지 않고 닫으면
-           * 기존 카테고리로 되돌림
-           */
-          setSelectedCategory(
-            currentCategory
-          );
-
-          setIsCategoryModalOpen(
-            false
-          );
-        }}
-
-        onSave={
-          handleCategorySave
-        }
-      />
-
-      {/* ======================================================
-          Category Saving
-      ====================================================== */}
-
-      {isSaving && (
-        <div
-          className="
-            fixed
-            bottom-6
-            right-6
-            z-[200]
-            flex
-            items-center
-            gap-2
-            rounded-xl
-            bg-[#172033]
-            px-4
-            py-3
-            text-sm
-            font-medium
-            text-white
-            shadow-lg
-          "
-        >
-          <Loader2
-            size={16}
-            className="animate-spin"
-          />
-
-          카테고리 수정 중...
-        </div>
-      )}
 
       {/* ======================================================
           Confirming
