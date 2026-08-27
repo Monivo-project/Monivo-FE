@@ -1,119 +1,29 @@
-import { useEffect, useState } from "react";
-
 import MainLayout from "../../components/layout/MainLayout";
 
 import MonthlyExpenseChart from "./components/MonthlyExpenseChart";
 import CategoryDistribution from "./components/CategoryDistribution";
 import ExpectedBudget from "./components/ExpectedBudget";
 
-import api from "../../api/api";
 
-/* ============================================================
-   Summary API Response
-============================================================ */
-
-interface SummaryResponse {
-  isSuccess: boolean;
-  code: string;
-  message: string;
-
-  result: {
-    totalExpense: number;
-  };
-}
-
-/* ============================================================
-   Report Page
-============================================================ */
+// ============================================================
+// Report Page
+// ============================================================
 
 export default function ReportPage() {
-  /* ==========================================================
-     Summary - 현재 총 지출
-  ========================================================== */
 
-  const [totalExpense, setTotalExpense] = useState(0);
-
-  const [summaryLoading, setSummaryLoading] =
-    useState(true);
-
-  /* ==========================================================
-     현재 연 / 월
-  ========================================================== */
+  // ============================================================
+  // 현재 연 / 월
+  // ============================================================
 
   const today = new Date();
 
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
 
-  /* ==========================================================
-     Summary 조회
-  ========================================================== */
 
-  useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        setSummaryLoading(true);
-
-        const response =
-          await api.get<SummaryResponse>(
-            "/api/home/summary",
-            {
-              params: {
-                year,
-                month,
-              },
-            }
-          );
-
-        console.log(
-          "소비 Summary:",
-          response.data
-        );
-
-        /* ====================================================
-           ⭐ 현재 총 지출
-
-           Home의 summary.totalExpense와
-           동일한 값을 사용
-        ==================================================== */
-
-        const expense =
-          Number(
-            response.data.result?.totalExpense ?? 0
-          );
-
-        setTotalExpense(expense);
-
-        console.log(
-          "현재 총 지출:",
-          expense
-        );
-
-      } catch (error: any) {
-        console.error(
-          "소비 Summary 조회 실패:",
-          error
-        );
-
-        console.error(
-          "Response:",
-          error.response?.data
-        );
-
-        setTotalExpense(0);
-
-      } finally {
-        setSummaryLoading(false);
-      }
-    };
-
-    fetchSummary();
-
-  }, [year, month]);
-
-  /* ==========================================================
-     Render
-  ========================================================== */
+  // ============================================================
+  // Render
+  // ============================================================
 
   return (
     <MainLayout activeMenu="소비 리포트">
@@ -153,6 +63,7 @@ export default function ReportPage() {
 
         </header>
 
+
         {/* =====================================================
             Monthly Expense
         ===================================================== */}
@@ -184,6 +95,7 @@ export default function ReportPage() {
           <MonthlyExpenseChart />
 
         </section>
+
 
         {/* =====================================================
             Bottom Grid
@@ -230,6 +142,7 @@ export default function ReportPage() {
 
           </section>
 
+
           {/* ===================================================
               Expected Budget
           =================================================== */}
@@ -258,40 +171,15 @@ export default function ReportPage() {
               AI 예상 지출 및 예산
             </h2>
 
+
             {/* =================================================
-                Summary 로딩 중
+                ExpectedBudget
+
+                Transaction의 EXPENSE 기준으로
+                currentAmount를 계산
             ================================================= */}
 
-            {summaryLoading ? (
-
-              <div
-                className="
-                  flex
-                  min-h-[360px]
-                  items-center
-                  justify-center
-                "
-              >
-
-                <p
-                  className="
-                    text-sm
-                    text-[#9AA5B5]
-                  "
-                >
-                  소비 데이터를 불러오는 중...
-                </p>
-
-              </div>
-
-            ) : (
-
-              /* =================================================
-                 ⭐ totalExpense를 ExpectedBudget으로 전달
-              ================================================= */
-              <ExpectedBudget />
-
-            )}
+            <ExpectedBudget />
 
           </section>
 
