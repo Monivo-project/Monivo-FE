@@ -40,7 +40,6 @@ export default function Sidebar({
     {
       label: "소비 내역",
       icon: <CircleDollarSign size={20} />,
-      badge: "30",
       path: "/consumption",
     },
     {
@@ -51,13 +50,11 @@ export default function Sidebar({
     {
       label: "이상 지출",
       icon: <AlertTriangle size={20} />,
-      badge: "3",
       path: "/abnormal",
     },
     {
       label: "미분류 관리",
       icon: <Tag size={20} />,
-      badge: "3",
       path: "/unclassified",
     },
     {

@@ -161,7 +161,6 @@ interface ConsumptionResponse {
 
   transactions: ConsumptionTransaction[];
 
-  // 페이징
   page: number;
   size: number;
   totalPages: number;
@@ -253,10 +252,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // Home Summary
-  //
-  // 상단 SummaryCard는 이 값을 사용한다.
-  // 검색 / 카테고리 필터와 관계없이
-  // 해당 월 전체 기준이다.
   // ============================================================
 
   const [homeSummary, setHomeSummary] =
@@ -267,8 +262,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 월 전체 거래 건수
-  //
-  // 필터와 관계없이 해당 월 전체 거래 건수
   // ============================================================
 
   const [totalTransactionCount, setTotalTransactionCount] =
@@ -296,7 +289,8 @@ export default function ConsumptionPage() {
   const [modalCategoryId, setModalCategoryId] =
     useState<number | null>(null);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] =
+    useState(false);
 
   // ============================================================
   // 카테고리 수정 저장 중
@@ -315,8 +309,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // Home Summary 조회
-  //
-  // /api/home
   // ============================================================
 
   useEffect(() => {
@@ -377,11 +369,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 월 전체 거래 건수 조회
-  //
-  // /api/consumption/search
-  //
-  // 검색 / 카테고리 필터를 적용하지 않고
-  // 해당 월 전체 거래 건수만 조회한다.
   // ============================================================
 
   useEffect(() => {
@@ -398,16 +385,9 @@ export default function ConsumptionPage() {
               params: {
                 year,
                 month,
-
-                // 필터 없음
                 merchant: null,
                 categoryId: null,
-
-                // 첫 페이지
                 page: 0,
-
-                // 전체 건수만 필요하므로
-                // 1건만 조회
                 size: 1,
               },
             }
@@ -455,10 +435,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // Consumption 조회
-  //
-  // 검색 / 카테고리 필터를 적용한다.
-  //
-  // 분류 방식 필터는 제거됨.
   // ============================================================
 
   useEffect(() => {
@@ -718,8 +694,6 @@ export default function ConsumptionPage() {
 
   // ============================================================
   // 분류 방식 표시
-  //
-  // 필터는 제거했지만 거래별 분류 방식 표시는 유지한다.
   // ============================================================
 
   const getClassificationLabel = (
@@ -877,31 +851,76 @@ export default function ConsumptionPage() {
             modalCategoryId
         );
 
+      const newCategoryName =
+        selectedCategoryInfo?.name ??
+        selectedTransaction.categoryName;
+
       // ========================================================
-      // 현재 화면 거래 수정
+      // 현재 필터와 수정된 카테고리 비교
+      //
+      // 예:
+      //
+      // 현재 필터 = 식비
+      // 수정 후 카테고리 = 쇼핑/생활
+      //
+      // => 현재 목록에서 해당 거래 제거
       // ========================================================
 
-      setTransactions((prev) =>
-        prev.map(
-          (transaction) =>
-            transaction.transactionId ===
-              selectedTransaction.transactionId
-              ? {
-                ...transaction,
+      const shouldRemoveFromCurrentList =
+        selectedCategory !==
+        "전체 카테고리" &&
+        selectedCategory !==
+        newCategoryName;
 
-                categoryId:
-                  modalCategoryId,
-
-                categoryName:
-                  selectedCategoryInfo?.name ??
-                  transaction.categoryName,
-
-                classificationType:
-                  "USER",
-              }
-              : transaction
-        )
+      console.log(
+        "현재 카테고리 필터:",
+        selectedCategory
       );
+
+      console.log(
+        "수정 후 카테고리:",
+        newCategoryName
+      );
+
+      console.log(
+        "현재 목록에서 제거:",
+        shouldRemoveFromCurrentList
+      );
+
+      // ========================================================
+      // transactions 수정
+      // ========================================================
+
+      if (shouldRemoveFromCurrentList) {
+        setTransactions((prev) =>
+          prev.filter(
+            (transaction) =>
+              transaction.transactionId !==
+              selectedTransaction.transactionId
+          )
+        );
+      } else {
+        setTransactions((prev) =>
+          prev.map(
+            (transaction) =>
+              transaction.transactionId ===
+                selectedTransaction.transactionId
+                ? {
+                  ...transaction,
+
+                  categoryId:
+                    modalCategoryId,
+
+                  categoryName:
+                    newCategoryName,
+
+                  classificationType:
+                    "USER",
+                }
+                : transaction
+          )
+        );
+      }
 
       // ========================================================
       // Consumption Summary 수정
@@ -917,6 +936,49 @@ export default function ConsumptionPage() {
             isUnclassified(
               selectedTransaction.classificationType
             );
+
+          // ----------------------------------------------------
+          // 현재 필터에서 사라져야 하는 경우
+          // ----------------------------------------------------
+
+          if (shouldRemoveFromCurrentList) {
+            return {
+              ...prev,
+
+              uncategorizedCount:
+                wasUnclassified
+                  ? Math.max(
+                    0,
+                    (prev.uncategorizedCount ??
+                      0) - 1
+                  )
+                  : prev.uncategorizedCount,
+
+              transactions:
+                prev.transactions?.filter(
+                  (transaction) =>
+                    transaction.transactionId !==
+                    selectedTransaction.transactionId
+                ) ?? [],
+
+              totalElements:
+                Math.max(
+                  0,
+                  prev.totalElements - 1
+                ),
+
+              transactionCount:
+                Math.max(
+                  0,
+                  prev.transactionCount - 1
+                ),
+            };
+          }
+
+          // ----------------------------------------------------
+          // 전체 카테고리 필터인 경우
+          // 또는 수정 후에도 현재 필터와 일치하는 경우
+          // ----------------------------------------------------
 
           return {
             ...prev,
@@ -942,14 +1004,19 @@ export default function ConsumptionPage() {
                         modalCategoryId,
 
                       categoryName:
-                        selectedCategoryInfo?.name ??
-                        transaction.categoryName,
+                        newCategoryName,
 
                       classificationType:
                         "USER",
                     }
                     : transaction
               ),
+
+            totalAmount:
+              prev.totalAmount,
+
+            transactionCount:
+              prev.transactionCount,
           };
         }
       );
@@ -983,6 +1050,64 @@ export default function ConsumptionPage() {
         console.error(
           "홈 요약 갱신 실패:",
           homeError
+        );
+      }
+
+      // ========================================================
+      // 전체 거래 건수 다시 조회
+      //
+      // 카테고리 필터와 관계없는
+      // 월 전체 거래 건수
+      // ========================================================
+
+      try {
+        const countResponse =
+          await api.get<
+            ApiResponse<ConsumptionResponse>
+          >(
+            "/api/consumption/search",
+            {
+              params: {
+                year,
+                month,
+                merchant: null,
+                categoryId: null,
+                page: 0,
+                size: 1,
+              },
+            }
+          );
+
+        if (
+          countResponse.data.isSuccess
+        ) {
+          setTotalTransactionCount(
+            countResponse.data.result
+              .totalElements ?? 0
+          );
+        }
+      } catch (countError) {
+        console.error(
+          "거래 건수 갱신 실패:",
+          countError
+        );
+      }
+
+      // ========================================================
+      // 현재 필터 결과가 비었을 때
+      //
+      // 마지막 거래를 삭제해서 페이지가 비어버린 경우
+      // 이전 페이지가 존재한다면 이전 페이지로 이동
+      // ========================================================
+
+      if (
+        shouldRemoveFromCurrentList &&
+        transactions.length === 1 &&
+        currentPage > 0
+      ) {
+        setCurrentPage(
+          (prev) =>
+            Math.max(0, prev - 1)
         );
       }
 
@@ -1240,8 +1365,6 @@ export default function ConsumptionPage() {
             xl:grid-cols-4
           "
         >
-          {/* 총 지출 */}
-
           <SummaryCard
             icon={
               <Wallet size={22} />
@@ -1255,8 +1378,6 @@ export default function ConsumptionPage() {
             subText="전체 거래 기준"
             tone="blue"
           />
-
-          {/* 거래 건수 */}
 
           <SummaryCard
             icon={
@@ -1272,8 +1393,6 @@ export default function ConsumptionPage() {
             tone="green"
           />
 
-          {/* 이상 지출 */}
-
           <SummaryCard
             icon={
               <Wallet size={22} />
@@ -1287,8 +1406,6 @@ export default function ConsumptionPage() {
             subText="전체 거래 기준"
             tone="red"
           />
-
-          {/* 미분류 */}
 
           <SummaryCard
             icon={
@@ -1323,8 +1440,6 @@ export default function ConsumptionPage() {
             lg:flex-row
           "
         >
-          {/* 검색 */}
-
           <div
             className="
               relative
@@ -1434,8 +1549,6 @@ export default function ConsumptionPage() {
                   shadow-[0_8px_24px_rgba(0,0,0,0.08)]
                 "
               >
-                {/* 전체 카테고리 */}
-
                 <button
                   type="button"
                   onClick={() =>
@@ -1461,8 +1574,6 @@ export default function ConsumptionPage() {
                 >
                   전체 카테고리
                 </button>
-
-                {/* 카테고리 */}
 
                 {CATEGORIES.map(
                   (category) => (
@@ -1515,8 +1626,6 @@ export default function ConsumptionPage() {
               text-[#6B7280]
             "
           >
-            {/* 검색 필터 */}
-
             {search && (
               <span
                 className="
@@ -1531,8 +1640,6 @@ export default function ConsumptionPage() {
                 검색: {search}
               </span>
             )}
-
-            {/* 카테고리 필터 */}
 
             {selectedCategory !==
               "전체 카테고리" && (
@@ -1550,8 +1657,6 @@ export default function ConsumptionPage() {
                   {selectedCategory}
                 </span>
               )}
-
-            {/* 전체 초기화 */}
 
             <button
               type="button"
@@ -1790,8 +1895,6 @@ export default function ConsumptionPage() {
                 gap-2
               "
             >
-              {/* 이전 */}
-
               <button
                 type="button"
                 onClick={() =>
@@ -1822,8 +1925,6 @@ export default function ConsumptionPage() {
               >
                 <ChevronLeft size={18} />
               </button>
-
-              {/* 페이지 번호 */}
 
               {getPageNumbers().map(
                 (page) => (
@@ -1858,8 +1959,6 @@ export default function ConsumptionPage() {
                   </button>
                 )
               )}
-
-              {/* 다음 */}
 
               <button
                 type="button"
@@ -1950,8 +2049,6 @@ export default function ConsumptionPage() {
               }
             }}
           >
-            {/* Modal */}
-
             <div
               className="
                 w-full
@@ -2018,8 +2115,6 @@ export default function ConsumptionPage() {
               {/* Content */}
 
               <div className="px-6 py-6">
-                {/* 거래 정보 */}
-
                 <div
                   className="
                     rounded-xl
@@ -2052,8 +2147,6 @@ export default function ConsumptionPage() {
                     {selectedTransaction.amount.toLocaleString()}
                   </p>
                 </div>
-
-                {/* 카테고리 선택 */}
 
                 <p
                   className="
@@ -2166,8 +2259,6 @@ export default function ConsumptionPage() {
                   pb-6
                 "
               >
-                {/* 취소 */}
-
                 <button
                   type="button"
                   onClick={
@@ -2197,8 +2288,6 @@ export default function ConsumptionPage() {
                 >
                   취소
                 </button>
-
-                {/* 저장 */}
 
                 <button
                   type="button"
